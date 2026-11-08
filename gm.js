@@ -78,13 +78,16 @@
       if (!n.sheet) return;
       var str = typeof n.sheet === "string", c;
       try { c = str ? JSON.parse(n.sheet) : JSON.parse(JSON.stringify(n.sheet)); } catch (x) { return; }
-      if (!c || !(c.ougi || []).length) return;
-      var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || ""));
-      if (!r.changed) return;
-      c.ougi = r.list; c.ogVer = 3; n0++;
+      if (!c) return;
+      var ch = false;
+      if ((c.ougi || []).length) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || "")); if (r.changed) { c.ougi = r.list; c.ogVer = 3; ch = true; } }
+      /* 무공 이름 바꾸기(11-08 2차): 익힌 무공 이름을 지금 이름으로 */
+      if (window.WX_RENAME_MG && (c.mkVer || 0) < (window.WX_MK_VER || 0)) { var q = WX_RENAME_MG(c.mg); c.mg = q.list; c.mkVer = window.WX_MK_VER; ch = true; }
+      if (!ch) return;
+      n0++;
       DB.collection(COL_N).doc(n.id).update({ sheet: str ? JSON.stringify(c) : c }).catch(function () { });
     });
-    if (n0 && window.toast) toast("서고 NPC " + n0 + "명의 옛 오의를 새 형태로 옮겼어요");
+    if (n0 && window.toast) toast("서고 NPC " + n0 + "명의 시트를 새 오의 형태·무공 이름으로 옮겼어요");
   }
   /* 비밀번호를 확인하고 연다. 저장소에 기보가 하나라도 있으면 맞는 비밀번호다 */
   function tryKey(db, key) {

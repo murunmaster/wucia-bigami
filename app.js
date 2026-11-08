@@ -1092,10 +1092,12 @@ function renderMods() {
 function modFits(m, form) { return !m.tgt || m.tgt.indexOf("모든") >= 0 || m.tgt.indexOf(form) >= 0; }
 
 /* ───────── 캐릭터 빌더 ───────── */
-function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
+function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, mkVer: 2, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
 var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 /* 예전에 만든 캐릭터에도 새 칸을 채운다 */
 var BASIC_ATK = "접근전 공격";
+/* 무공 이름 판: mkVer가 WX_MK_VER보다 낮으면 익힌 무공 이름을 지금 이름으로 옮긴다(rulefix.js WX_RENAME_ALL) */
+function mkUp(c) { var V = window.WX_MK_VER || 0; if ((c.mkVer || 0) >= V || !window.WX_RENAME_MG) return false; var r = WX_RENAME_MG(c.mg); c.mg = r.list; c.mkVer = V; return r.changed; }
 /* 오의 판: ogVer 2 = 2차 개편(옛 6형태 + 새 4형태), 3 = 옛 6형태 폐지(새 4형태만).
    2 → 3은 지우지 않고 새 형태로 옮긴다(rulefix.js WX_OG). 그보다 옛것은 지운다. */
 var OG_VER = 3;
@@ -1104,7 +1106,7 @@ function ogUp(c) {
   if (c.ogVer === 2 && window.WX_OG) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")); c.ougi = r.list; c.ogVer = OG_VER; return r.changed; }
   var had = (c.ougi || []).length > 0; c.ougi = []; c.ogN = 0; c.ogVer = OG_VER; return had;
 }
-function fixChar(c) { ogUp(c); var b = blankChar(); Object.keys(b).forEach(function (k) { if (c[k] === undefined) c[k] = b[k]; }); if ((c.mg || []).indexOf(BASIC_ATK) >= 0) c.mg = c.mg.filter(function (n) { return n !== BASIC_ATK; }); return c; }
+function fixChar(c) { ogUp(c); mkUp(c); var b = blankChar(); Object.keys(b).forEach(function (k) { if (c[k] === undefined) c[k] = b[k]; }); if ((c.mg || []).indexOf(BASIC_ATK) >= 0) c.mg = c.mg.filter(function (n) { return n !== BASIC_ATK; }); return c; }
 /* 접근전 공격은 누구나 기본으로 가진다. 무공 수에 들지 않고 지정특기만 고른다(자유) */
 function atkLine(c) { return "<li><b>접근전 공격</b> 공격 · 간격 1 · 코스트 0 · 《" + esc(c.atk || "지정특기 미정") + '》 <span class="hint">기본</span><div class="eff">접근전 1점.</div></li>'; }
 function atkOpts(c) {
@@ -1148,7 +1150,7 @@ function targets(c) {
   return out;
 }
 var chars = store("wx-chars") || [];
-(function () { var n = 0; chars.forEach(function (c) { if (ogUp(c)) n++; }); if (n) { store("wx-chars", chars); setTimeout(function () { toast("옛 오의 형태(일격·광역·각성·영역·방어·회복)가 없어져 새 형태로 옮겼어요. 오의를 확인해 주세요"); }, 800); } })();
+(function () { var n = 0, m = 0; chars.forEach(function (c) { if (mkUp(c)) m++; }); if (m) store("wx-chars", chars); chars.forEach(function (c) { if (ogUp(c)) n++; }); if (n) { store("wx-chars", chars); setTimeout(function () { toast("옛 오의 형태(일격·광역·각성·영역·방어·회복)가 없어져 새 형태로 옮겼어요. 오의를 확인해 주세요"); }, 800); } })();
 var curId = store("wx-cur");
 if (!chars.length) { chars = [blankChar()]; }
 chars.forEach(fixChar);
@@ -1380,7 +1382,7 @@ function modBalance(o, L) {
   var ok = s <= w + L.mod;
   return '<span class="quota ' + (ok ? "full" : "over") + '">강점 ' + s + " · 약점 " + w + (L.mod ? " · 개조 점수 " + L.mod : "") + (ok ? "" : " — 약점이 부족해요") + "</span>";
 }
-function find(list, n) { return list.filter(function (x) { return x.n === n; })[0] || { n: n, e: "(시트에서 찾을 수 없음)" }; }
+function find(list, n) { var r = list.filter(function (x) { return x.n === n; })[0]; if (!r && window.WX_RENAME && WX_RENAME[n]) { var n2 = WX_RENAME[n]; r = list.filter(function (x) { return x.n === n2; })[0]; } return r || { n: n, e: "(시트에서 찾을 수 없음)" }; }
 
 function checks(c) {
   var L = LIMITS[c.lv], g = GROUPS[c.group], out = [];
@@ -1941,8 +1943,8 @@ function addSyncBtn(mcp, art) {
 }
 /* ───────── 무공 4차 개편: 사이트의 무공 목록을 시트 '인법출력리스트'에 한 번 써 넣는다 ─────────
    옛 목록은 '인법출력리스트(3차)' 탭에 사본으로 남겨 두었다. 다 쓰면 단추가 사라진다. */
-var PUSH_VER = "muk4-rn1108";
-var PUSH_CHECK = "금강항마(金剛降魔)";
+var PUSH_VER = "muk4-rn1108b";
+var PUSH_CHECK = "적정존(寂靜尊)";
 var PUSH_LAST = 1433;
 function pushDone() { return store("wx-push") === PUSH_VER; }
 function addPushBtn(mcp) {
