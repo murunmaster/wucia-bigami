@@ -1941,8 +1941,8 @@ function addSyncBtn(mcp, art) {
 }
 /* ───────── 무공 4차 개편: 사이트의 무공 목록을 시트 '인법출력리스트'에 한 번 써 넣는다 ─────────
    옛 목록은 '인법출력리스트(3차)' 탭에 사본으로 남겨 두었다. 다 쓰면 단추가 사라진다. */
-var PUSH_VER = "muk4-1108";
-var PUSH_CHECK = "정려(靜慮)";
+var PUSH_VER = "muk4-rn1108";
+var PUSH_CHECK = "금강항마(金剛降魔)";
 var PUSH_LAST = 1433;
 function pushDone() { return store("wx-push") === PUSH_VER; }
 function addPushBtn(mcp) {
