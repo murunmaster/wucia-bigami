@@ -66,9 +66,25 @@
     }, function (err) { clearTimeout(t); GM.err = "기보 자료를 읽지 못했어요 (" + (err && err.code || "오류") + ")."; redraw(); });
     db.collection(COL_N).onSnapshot(function (s) {
       GM.npc = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
-      if (!s.metadata.fromCache) GM.npcReady = true;
+      if (!s.metadata.fromCache) { GM.npcReady = true; migrateNpcOg(); }
       redraw();
     }, function () { GM.npcReady = true; redraw(); });
+  }
+  /* 옛 오의 6형태 폐지(11-08): 서고 NPC 시트의 옛 형태 오의를 새 형태로 옮겨 저장한다. 이름·지정특기는 그대로, 새 형태에 안 붙는 개조는 뗀다(rulefix.js WX_OG). 한 번만 돈다 */
+  function migrateNpcOg() {
+    if (!DB || !window.WX_OG || GM.ogMig) return; GM.ogMig = true;
+    var n0 = 0;
+    GM.npc.forEach(function (n) {
+      if (!n.sheet) return;
+      var str = typeof n.sheet === "string", c;
+      try { c = str ? JSON.parse(n.sheet) : JSON.parse(JSON.stringify(n.sheet)); } catch (x) { return; }
+      if (!c || !(c.ougi || []).length) return;
+      var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || ""));
+      if (!r.changed) return;
+      c.ougi = r.list; c.ogVer = 3; n0++;
+      DB.collection(COL_N).doc(n.id).update({ sheet: str ? JSON.stringify(c) : c }).catch(function () { });
+    });
+    if (n0 && window.toast) toast("서고 NPC " + n0 + "명의 옛 오의를 새 형태로 옮겼어요");
   }
   /* 비밀번호를 확인하고 연다. 저장소에 기보가 하나라도 있으면 맞는 비밀번호다 */
   function tryKey(db, key) {

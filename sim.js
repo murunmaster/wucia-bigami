@@ -139,7 +139,7 @@
     f.passive.forEach(function (x) { if (x.conds.length || x.lim) return; x.effs.forEach(function (e) { if (!e.sub && !e.v) return; if (["immovable", "nostun", "nohigh", "nowater", "nocold", "noterr", "rr", "endure", "nodeath", "lastround", "stunatk", "stunev", "lostok", "seehidden", "lurk", "nomvdebuff", "nopull", "stpick", "drunk", "ignoreg", "hdmulti", "bank", "debtback"].indexOf(e.key) >= 0) f.flags[e.key] = e.arg || true; if (e.key === "immune") f.flags["im_" + e.arg] = true; }); });
     if (f.flags.drunk) f.drunk = true;
     f.unparsed = f.mgs.filter(function (m) { var g = fxGaps(m.r.n); return g.unk || g.none; }).map(function (m) { return m.r.n; });
-    f.ougi = (c.ougi || []).filter(function (o) { return o && o.form; }).map(function (o, i) { return { i: i, name: o.name || "무명 오의", form: o.form, skill: o.skill, mods: o.mods || [] }; });
+    f.ougi = (window.WX_OG ? WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")).list : (c.ougi || [])).filter(function (o) { return o && o.form; }).map(function (o, i) { return { i: i, name: o.name || "무명 오의", form: o.form, skill: o.skill, mods: o.mods || [] }; });
     if (f.grade === "졸개") { f.pool = 1; f.extra = 0; }
     if (f.grade === "이물") f.pool = Math.max(1, Number(opt.hp) || 4);
     if (f.grade === "두목") f.extra += Math.max(0, Number(opt.bossHp) || 0);
@@ -1338,7 +1338,7 @@
     var L = A.limits[c.lv] || { og: 0, mod: 0 }, n = L.og + (grade === "두목" ? 1 : 0);
     var mods = A.mods(), out = [];
     var dark = /천마신교|사도/.test(c.group || "");
-    var forms = ["일격·근거리형", "일격·근거리형", "일격·원거리형", "광역", "각성·판정 상승", "각성·순간 성공", "영역·데미지 감소", "영역·판정 감소형", "방어·완전방어형", "방어·완전방어형", "방어·반격형", "회복·생명력 회복", "연환(連環)형", "흡성(吸星)형", "신법(身法)형", "호신강기(護身罡氣)형"];
+    var forms = ["연환(連環)형", "흡성(吸星)형", "신법(身法)형", "호신강기(護身罡氣)형"];
     for (var i = 0; i < n; i++) {
       var form = pick(forms), k = ogKind({ form: form });
       var fit = mods.filter(function (m) { return modFits(form, m.tgt) && ["빼앗기", "원한(怨恨)", "탁기(濁氣)", "일로(一路)", "편방(偏防)", "마성(魔性)"].indexOf(m.n) < 0; });
@@ -1523,7 +1523,7 @@
       var sups = me.supports.map(function (s, i) { if (s.trig !== "H" || !b.clOk(me, s.cl, null, atkA)) return ""; return '<label class="hint"><input type="checkbox" data-sup="' + i + '"' + ((sel.sup || []).indexOf(i) >= 0 ? " checked" : "") + "> 명중 직전 보조 " + esc(s.n) + " (코스트 " + s.cost + ")</label>"; }).join(" ");
       var tsups = me.supports.map(function (s, i) { if (s.trig !== "T" || !b.limOk(me, s.cl)) return ""; return '<label class="hint"><input type="checkbox" data-tsup="' + i + '"' + ((sel.tsup || []).indexOf(i) >= 0 ? " checked" : "") + "> 턴 보조 " + esc(s.n) + " (코스트 " + s.cost + ")</label>"; }).join(" ");
       var ogs = me.ougi.filter(function (o) { return b.ougiOk(me, o); }).map(function (o) { var k = ogKind(o); if (k === "guard" || k === "counter") return ""; return '<label class="hint"><input type="checkbox" data-og="' + o.i + '"' + ((sel.og || []).indexOf(o.i) >= 0 ? " checked" : "") + "> 오의 「" + esc(o.name) + "」 " + esc(o.form) + ((o.mods || []).length ? " · " + esc(o.mods.join("·")) : "") + "</label>"; }).join(" ");
-      ctl = "<p><b>내 턴</b> — 공력 " + me.pow + " · 남은 코스트 " + budget + '. 무공을 고르고 판에서 대상을 누르세요.</p><div class="picker sp-atks">' + atks + "</div>" + (sups.trim() ? "<div>" + sups + "</div>" : "") + (tsups.trim() ? "<div>" + tsups + '</div><p class="hint">턴 보조는 공격 전에 씁니다. 적에게 거는 것은 판에서 고른 대상(없으면 가장 가까운 적)에게 갑니다.</p>' : "") + (ogs ? "<div>" + ogs + '</div><p class="hint">공격 오의(일격·광역)는 판에서 고른 대상에게 씁니다.</p>' : "") +
+      ctl = "<p><b>내 턴</b> — 공력 " + me.pow + " · 남은 코스트 " + budget + '. 무공을 고르고 판에서 대상을 누르세요.</p><div class="picker sp-atks">' + atks + "</div>" + (sups.trim() ? "<div>" + sups + "</div>" : "") + (tsups.trim() ? "<div>" + tsups + '</div><p class="hint">턴 보조는 공격 전에 씁니다. 적에게 거는 것은 판에서 고른 대상(없으면 가장 가까운 적)에게 갑니다.</p>' : "") + (ogs ? "<div>" + ogs + '</div><p class="hint">흡성은 판에서 고른 대상(2칸 안)에게 씁니다.</p>' : "") +
         '<div class="sheet-actions"><button class="btn primary small" type="button" id="sp-act">실행</button><button class="btn small" type="button" id="sp-pass">턴 넘기기</button></div>';
     }
     el.innerHTML = '<div class="sim-prac"><div>' + grid + '<p class="hint">전장: ' + esc(b.terrain) + " · " + b.round + '라운드</p></div><div><ul class="sim-roster">' + roster + "</ul>" + ctl + '</div></div><div class="sim-log2" id="sp-log"></div>' +
@@ -1555,8 +1555,8 @@
         var s = P.sel, ogs = (s.og || []).map(function (i) { var o = me.ougi.filter(function (q) { return q.i === i; })[0], k = ogKind(o); return { i: i, tg: (k === "strike" || k === "wide" || k === "zdis") ? s.tg : null }; });
         var needTg = ogs.some(function (o) { var k = ogKind(me.ougi.filter(function (q) { return q.i === o.i; })[0]); return (k === "strike" || k === "wide") && !o.tg; });
         if (needTg) { A.toast("공격 오의를 쓸 대상을 판에서 누르세요"); return; }
-        var badOg = ogs.filter(function (o) { var q = me.ougi.filter(function (z) { return z.i === o.i; })[0], k = ogKind(q), tg = P.b.f.filter(function (z) { return z.id === o.tg; })[0]; return (k === "strike" || k === "wide") && tg && dist(me.pos, tg.pos) > ogRange(q); });
-        if (badOg.length) { A.toast("오의가 닿지 않아요 (일격 근거리 2칸 · 원거리 4칸 · 광역 4칸)"); return; }
+        var badOg = ogs.filter(function (o) { var q = me.ougi.filter(function (z) { return z.i === o.i; })[0], k = ogKind(q), tg = P.b.f.filter(function (z) { return z.id === o.tg; })[0]; return k === "drain" && tg && dist(me.pos, tg.pos) > 2 + (hasMod(q, "뻗기") ? 1 : 0) - (hasMod(q, "단척") ? 1 : 0); });
+        if (badOg.length) { A.toast("오의가 닿지 않아요 (흡성 2칸)"); return; }
         if (s.atk != null) {
           var a = me.attacks[s.atk], tg = P.b.f.filter(function (z) { return z.id === s.tg; })[0];
           if (!tg || P.b.targetsOf(me, a, tg).indexOf(tg) < 0) { A.toast("그 무공이 닿는 대상을 판에서 누르세요"); return; }

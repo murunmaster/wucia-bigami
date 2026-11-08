@@ -843,53 +843,13 @@
   var OG_MARK = "연환(連環)";
   var OG_FORMS = String.raw`## **형태**
 
-일격 (기 소진)
-
-\-근거리형: 2칸 내 대상 1명 접근전 3뎀
-
-\-원거리형: 4칸 내 대상 1명 접근전 2뎀
-
-  
-
-광역 (기 소진)
-
-\-4칸 지정하여 사격전 1뎀(단, 칸마다 이어져야 함)
-
-  
-
-각성
-
-\-판정 상승: 2턴간 유리점 2점
-
-\-순간 성공: 판정 성공 취급. 판정치 필요하면 10취급
-
-  
-
-영역: 3x3 범위. 2턴. 
-
-\-데미지 감소: 2뎀
-
-\-판정 감소형: 불리점 부여
-
-  
-
-방어
-
-\-완전방어형: 2뎀까지.
-
-\-반격형: 2뎀 감소 1뎀 반격.
-
-  
-
-회복
-
-\-생명력 회복: 2d6kh 
+오의 형태는 아래 넷이다. 예전의 일격·광역·각성·영역·방어·회복은 없어졌다.
 
   
 
 연환(連環)
 
-\-이번 차례에 공격 무공 하나를 코스트 없이 3번까지 연달아 쓴다. 2번째부터 명중 판정에 유리점 1. 기 소진 없음.
+\-이번 차례에 공격 무공 하나를 코스트 없이 3번까지 연달아 쓴다. 2번째부터 명중 판정에 유리점 1.
 
   
 
@@ -908,12 +868,6 @@
 호신강기(護身罡氣)
 
 \-자신과 인접한 아군은 다음 라운드 종료까지 받는 접근전·사격전 대미지가 1 줄고, 상태이상에 걸리지 않는다.
-
-  
-
-**기 소진(氣 消盡)**
-
-\-일격·광역 오의를 쓴 차례에는 그 라운드에 공격·보조 무공을 더 쓸 수 없다. 그 밖의 형태에는 없다.
 
   
 
@@ -972,6 +926,88 @@
     });
     d.mods.forEach(function (m) { if (m.n === "두르기") m.e = String(m.e).replace("완전방어형 6점", "완전방어형 3점"); });
     NEW.forEach(function (x) { if (!d.mods.some(function (r) { return r.n === x.n; })) d.mods.push(x); });
+    return d;
+  };
+})();
+
+/* ═════════ 3차 — 옛 오의 6형태(일격·광역·각성·영역·방어·회복) 폐지 (11-08) ═════════
+   오의는 연환·흡성·신법·호신강기 넷만 남는다. 오의첩 개조는 새 형태에 붙는 것만 남기고 효과문을 새 형태 기준으로 다시 쓴다.
+   WX_OG: 빌더·인물지·GM 서고가 옛 오의를 새 형태로 옮길 때 쓴다. */
+(function () {
+  var FORM_KEYS = { "연환": "연환(連環)형", "흡성": "흡성(吸星)형", "신법": "신법(身法)형", "호신강기": "호신강기(護身罡氣)형" };
+  /* 개조 이름(괄호 앞) → [대상 오의, 효과문(null이면 원래 효과 그대로)] */
+  var KEEP = {
+    "감추기": ["모든 오의", null],
+    "비틀기": ["모든 오의", null],
+    "잇기": ["연환", "연달아 쓰는 횟수가 1번 늘어난다(4번)."],
+    "빛내기": ["연환", "연달아 쓰는 공격의 명중 판정에 유리점 1을 더 받는다(첫 번째 1, 2번째부터 2)."],
+    "뻗기": ["흡성·신법", "흡성: 간격이 1칸 늘어난다(3칸). 신법: 이동이 1칸 늘어난다(5칸)."],
+    "뚫기": ["흡성", "대상이 무공이나 오의로 대미지를 줄여도 생명력 1점은 반드시 잃게 한다."],
+    "삼키기": ["흡성", "대상이 생명력을 1점 이상 잃으면 회복량이 1점 늘어난다."],
+    "베기": ["신법", "다음 공격 무공의 대미지가 1점 더 늘어난다(+2)."],
+    "버티기": ["신법·호신강기", "신법: 빗나가게 하는 공격이 1번 늘어난다(2번). 호신강기: 효과가 1라운드 더 이어진다."],
+    "두르기": ["호신강기", "줄이는 대미지가 1점 늘어난다(2점)."],
+    "나누기": ["호신강기", "자신에게서 2칸 안의 아군까지 효과를 받는다."],
+    "연격": ["연환", null],
+    "역류": ["흡성", null],
+    "반진": ["호신강기", null],
+    "단발": ["모든 오의", null],
+    "반서": ["모든 오의", null],
+    "호명": ["모든 오의", null],
+    "마성": ["모든 오의", null],
+    "소진": ["모든 오의", null],
+    "급류": ["모든 오의", null],
+    "완보": ["모든 오의", null],
+    "역경": ["모든 오의", null],
+    "궁지": ["모든 오의", "자신의 남은 생명력이 3 이하일 때만 쓸 수 있다."],
+    "미력": ["연환·흡성", "연환: 연달아 쓰는 횟수가 1번 줄어든다(2번). 흡성: 사격전 대미지가 1점 줄어든다."],
+    "단척": ["흡성·신법", "흡성: 간격이 1칸 줄어든다(1칸). 신법: 이동이 1칸 줄어든다(3칸)."],
+    "박벽": ["호신강기", "대미지는 줄이지 못하고 상태이상만 막는다."],
+    "협의": ["연환·흡성", "남은 생명력이 자신 이상인 캐릭터만 대상으로 고를 수 있다."],
+    "원한": ["연환·흡성", "자신이 부정 감정을 품은 캐릭터만 대상으로 고를 수 있다."],
+    "탈력": ["연환·신법", null],
+    "역혈": ["흡성", null],
+    "고정": ["호신강기", null]
+  };
+  function base(n) { return String(n || "").split("(")[0].trim(); }
+  function fits(modName, formKey) {
+    var k = KEEP[base(modName)]; if (!k) return false;
+    if (k[0] === "모든 오의") return true;
+    return k[0].split("·").some(function (t) { return String(formKey || "").indexOf(t) === 0; });
+  }
+  var NEW_KEYS = Object.keys(FORM_KEYS).map(function (k) { return FORM_KEYS[k]; });
+  function isNew(form) { return NEW_KEYS.indexOf(form) >= 0; }
+  /* 옛 형태 → 새 형태. 공격형(일격·광역)은 사도오천·천마신교(세력이나 문파 이름)면 흡성, 그 밖은 연환. 각성은 신법, 영역·방어·회복은 호신강기 */
+  function mapForm(form, group) {
+    var f = String(form || "");
+    if (!f || isNew(f)) return f;
+    if (/^(일격|광역)/.test(f)) return /천마신교|사도|패검종|암야전|군마녹림|장강수로채|흑상|교주궁|병마령|비연각|요왕장|혈교/.test(group || "") ? FORM_KEYS["흡성"] : FORM_KEYS["연환"];
+    if (/^각성/.test(f)) return FORM_KEYS["신법"];
+    if (/^(영역|방어|회복)/.test(f)) return FORM_KEYS["호신강기"];
+    return f;
+  }
+  /* 오의 목록을 새 형태로 옮긴다. 이름·지정특기는 그대로, 새 형태에 붙지 않는 개조는 뗀다. 바뀌었으면 changed = true */
+  function migrate(list, group) {
+    var changed = false;
+    var out = (list || []).map(function (o) {
+      if (!o) return o;
+      var nf = mapForm(o.form, group);
+      var mods = (o.mods || []).filter(function (m) { return !nf || fits(m, nf); });
+      if (nf !== o.form || mods.length !== (o.mods || []).length) { changed = true; return Object.assign({}, o, { form: nf, mods: mods }); }
+      return o;
+    });
+    return { list: out, changed: changed };
+  }
+  window.WX_OG = { forms: NEW_KEYS, mapForm: mapForm, migrate: migrate, fits: fits, isNew: isNew };
+
+  var prevData = window.WX_PATCH_DATA;
+  window.WX_PATCH_DATA = function (d) {
+    if (prevData) d = prevData(d);
+    if (!d || !d.mods) return d;
+    d.mods = d.mods.filter(function (m) { return KEEP[base(m.n)]; }).map(function (m) {
+      var k = KEEP[base(m.n)];
+      return Object.assign({}, m, { tgt: k[0], e: k[1] == null ? m.e : k[1] });
+    });
     return d;
   };
 })();

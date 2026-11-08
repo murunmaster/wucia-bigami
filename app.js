@@ -72,16 +72,6 @@ var GROUPS = {
   "세외": { field: "외공", schools: { "북해빙궁": ["장", "음기"], "포달랍궁": ["지", "법력"], "동영": ["보법", "도"], "서역": ["조", "환술"], "천축": ["각", "방술"], "해동": ["근력", "학식", "초혼"] } }
 };
 var FORMS = [
-  { k: "일격·근거리형", f: "일격", e: "2칸 내 대상 1명 접근전 3뎀. 기 소진" },
-  { k: "일격·원거리형", f: "일격", e: "4칸 내 대상 1명 접근전 2뎀. 기 소진" },
-  { k: "광역", f: "광역", e: "4칸 지정하여 사격전 1뎀 (칸마다 이어져야 함). 기 소진" },
-  { k: "각성·판정 상승", f: "각성", e: "2턴간 유리점 2점" },
-  { k: "각성·순간 성공", f: "각성", e: "판정 성공 취급. 판정치가 필요하면 10 취급" },
-  { k: "영역·데미지 감소", f: "영역", e: "3x3 범위, 2턴. 데미지 2 감소" },
-  { k: "영역·판정 감소형", f: "영역", e: "3x3 범위, 2턴. 불리점 부여" },
-  { k: "방어·완전방어형", f: "방어", e: "2뎀까지 방어" },
-  { k: "방어·반격형", f: "방어", e: "2뎀 감소, 1뎀 반격" },
-  { k: "회복·생명력 회복", f: "회복", e: "생명력 2d6kh 회복" },
   { k: "연환(連環)형", f: "연환", e: "이번 차례에 공격 무공 하나를 코스트 없이 3번까지 연달아 쓴다. 2번째부터 명중 판정 유리점 1. 기 소진 없음" },
   { k: "흡성(吸星)형", f: "흡성", e: "2칸 내 적 1명 사격전 2뎀, 입힌 만큼 자신 회복. 다음 라운드 종료까지 대상 코스트 한계 -2, 자신 +2" },
   { k: "신법(身法)형", f: "신법", e: "곧바로 4칸 이동. 이번 라운드 동안 자신을 노린 명중 판정 불리점 2, 자신을 노린 공격 1번은 빗나감. 다음 공격 무공은 대상 회피 불리점 1·대미지 +1" },
@@ -1092,7 +1082,7 @@ function renderMods() {
     filters: function (s) {
       return '<div class="field"><label for="f-q">검색</label><input id="f-q" type="search" data-f="q" value="' + esc(s.q || "") + '"></div>' +
         '<div class="field"><span class="lbl">타입</span>' + chips("t", uniq(R.map(function (r) { return r.t; })), s.t) + "</div>" +
-        '<div class="field"><span class="lbl">대상 오의</span>' + chips("f", ["일격", "광역", "각성", "영역", "방어", "회복", "연환", "흡성", "신법", "호신강기"], s.f) + "</div>" +
+        '<div class="field"><span class="lbl">대상 오의</span>' + chips("f", ["연환", "흡성", "신법", "호신강기"], s.f) + "</div>" +
         '<p class="hint">개조는 강점 하나에 약점 하나를 함께 골라요. 절정부터는 개조 점수만큼 약점을 덜 고를 수 있어요.</p>';
     },
     match: function (r, s) { return q(r, s, ["n", "e"]) && (!s.t || !s.t.length || s.t.indexOf(r.t) >= 0) && (!s.f || !s.f.length || s.f.some(function (f) { return modFits(r, f); })); },
@@ -1102,13 +1092,19 @@ function renderMods() {
 function modFits(m, form) { return !m.tgt || m.tgt.indexOf("모든") >= 0 || m.tgt.indexOf(form) >= 0; }
 
 /* ───────── 캐릭터 빌더 ───────── */
-function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, ougi: [], ogVer: 2, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
+function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, ougi: [], ogVer: 3, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
 var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 /* 예전에 만든 캐릭터에도 새 칸을 채운다 */
 var BASIC_ATK = "접근전 공격";
-/* 2차 개편(오의 확정) 전에 만든 오의는 모두 지운다. ogVer 2 = 개편 뒤의 오의 */
-var OG_VER = 2;
-function fixChar(c) { if (c.ogVer !== OG_VER) { c.ougi = []; c.ogN = 0; c.ogVer = OG_VER; } var b = blankChar(); Object.keys(b).forEach(function (k) { if (c[k] === undefined) c[k] = b[k]; }); if ((c.mg || []).indexOf(BASIC_ATK) >= 0) c.mg = c.mg.filter(function (n) { return n !== BASIC_ATK; }); return c; }
+/* 오의 판: ogVer 2 = 2차 개편(옛 6형태 + 새 4형태), 3 = 옛 6형태 폐지(새 4형태만).
+   2 → 3은 지우지 않고 새 형태로 옮긴다(rulefix.js WX_OG). 그보다 옛것은 지운다. */
+var OG_VER = 3;
+function ogUp(c) {
+  if (c.ogVer === OG_VER) return false;
+  if (c.ogVer === 2 && window.WX_OG) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")); c.ougi = r.list; c.ogVer = OG_VER; return r.changed; }
+  var had = (c.ougi || []).length > 0; c.ougi = []; c.ogN = 0; c.ogVer = OG_VER; return had;
+}
+function fixChar(c) { ogUp(c); var b = blankChar(); Object.keys(b).forEach(function (k) { if (c[k] === undefined) c[k] = b[k]; }); if ((c.mg || []).indexOf(BASIC_ATK) >= 0) c.mg = c.mg.filter(function (n) { return n !== BASIC_ATK; }); return c; }
 /* 접근전 공격은 누구나 기본으로 가진다. 무공 수에 들지 않고 지정특기만 고른다(자유) */
 function atkLine(c) { return "<li><b>접근전 공격</b> 공격 · 간격 1 · 코스트 0 · 《" + esc(c.atk || "지정특기 미정") + '》 <span class="hint">기본</span><div class="eff">접근전 1점.</div></li>'; }
 function atkOpts(c) {
@@ -1152,7 +1148,7 @@ function targets(c) {
   return out;
 }
 var chars = store("wx-chars") || [];
-(function () { var n = 0; chars.forEach(function (c) { if (c.ogVer !== OG_VER) { if ((c.ougi || []).length) n++; c.ougi = []; c.ogVer = OG_VER; } }); if (n) { store("wx-chars", chars); setTimeout(function () { toast("오의 규칙이 바뀌어 예전 오의를 지웠어요. 새로 만들어 주세요"); }, 800); } })();
+(function () { var n = 0; chars.forEach(function (c) { if (ogUp(c)) n++; }); if (n) { store("wx-chars", chars); setTimeout(function () { toast("옛 오의 형태(일격·광역·각성·영역·방어·회복)가 없어져 새 형태로 옮겼어요. 오의를 확인해 주세요"); }, 800); } })();
 var curId = store("wx-cur");
 if (!chars.length) { chars = [blankChar()]; }
 chars.forEach(fixChar);
@@ -1618,7 +1614,7 @@ function withSecret(uid, pc) {
   var sc = (OGS[uid] || {})[pc.id];
   if (!sc && uid === MY_ID) { var loc = chars.filter(function (x) { return x.id === pc.id; })[0]; if (loc) sc = secretOf(loc); }
   if (!sc) return pc;
-  var o = JSON.parse(JSON.stringify(pc)); o.ougi = sc.ogVer === OG_VER ? (sc.ougi || []) : []; o.ogVer = OG_VER; delete o.ogN;
+  var o = JSON.parse(JSON.stringify(pc)); o.ougi = sc.ogVer === OG_VER ? (sc.ougi || []) : sc.ogVer === 2 && window.WX_OG ? WX_OG.migrate(sc.ougi, (pc.group || "") + " " + (pc.school || "")).list : []; o.ogVer = OG_VER; delete o.ogN;
   o.rel = (o.rel || []).map(function (r, i) { return (sc.relOg || [])[i] ? Object.assign({}, r, { og: sc.relOg[i] }) : r; });
   return o;
 }
