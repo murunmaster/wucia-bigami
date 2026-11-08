@@ -1092,7 +1092,7 @@ function renderMods() {
 function modFits(m, form) { return !m.tgt || m.tgt.indexOf("모든") >= 0 || m.tgt.indexOf(form) >= 0; }
 
 /* ───────── 캐릭터 빌더 ───────── */
-function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, ougi: [], ogVer: 3, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
+function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
 var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 /* 예전에 만든 캐릭터에도 새 칸을 채운다 */
 var BASIC_ATK = "접근전 공격";
@@ -1231,7 +1231,8 @@ function renderBuilder() {
     supplies.map(function (s) {
       var n = c.items[s.n] || 0;
       return '<div class="field"><span class="lbl">' + esc(s.n) + (s.p ? " · " + esc(s.p) : "") + '</span><div class="stepper"><button type="button" class="btn small" data-it="' + esc(s.n) + '" data-d="-1" aria-label="' + esc(s.n) + ' 빼기">−</button><span>' + n + '</span><button type="button" class="btn small" data-it="' + esc(s.n) + '" data-d="1" aria-label="' + esc(s.n) + ' 더하기"' + (supN >= 3 ? " disabled" : "") + '>＋</button></div><span class="hint">' + esc(s.e) + "</span></div>";
-    }).join("") + "</div></section>" +
+    }).join("") + "</div>" +
+    '<div class="field money"><label for="b-money">소지금 (엽전, 냥)</label><input id="b-money" type="number" min="0" step="1" inputmode="numeric" value="' + (Number(c.money) || 0) + '"><span class="hint">보급품·도구를 사고 남은 엽전이에요.</span></div></section>' +
 
     '<section class="step"><div class="step-h"><h2>오의</h2>' + quota(c.ougi.length, L.og) + "</div>" +
     (L.og ? "" : '<p class="hint">오의는 이류부터 가질 수 있어요.</p>') +
@@ -1315,6 +1316,7 @@ function renderBuilder() {
   $("#b-name").oninput = function (e) { c.name = e.target.value; save(); drawSheet(c); var o = $("#b-char").selectedOptions[0]; if (o) o.textContent = c.name || "이름 없는 협객"; };
   $("#b-alias").oninput = function (e) { c.alias = e.target.value; save(); drawSheet(c); };
   $("#b-notes").oninput = function (e) { c.notes = e.target.value; save(); drawSheet(c); };
+  $("#b-money").oninput = function (e) { c.money = Math.max(0, Math.floor(Number(e.target.value) || 0)); save(); drawSheet(c); };
   $("#b-lv").onchange = function (e) { c.lv = e.target.value; rerender(); };
   $("#b-group").onchange = function (e) { c.group = e.target.value; c.school = ""; rerender(); };
   $("#b-school").onchange = function (e) { c.school = e.target.value; rerender(); };
@@ -1419,6 +1421,7 @@ function sheetText(c) {
   c.bg.forEach(function (n) { var r = find(DATA.bg, n); L.push("- " + r.n + " [" + (r.t || "") + "] " + r.e); });
   var it = Object.keys(c.items);
   if (it.length) { L.push(""); L.push("■ 보급품"); it.forEach(function (n) { L.push("- " + n + " ×" + c.items[n]); }); }
+  L.push(""); L.push("■ 소지금: " + (Number(c.money) || 0) + "냥");
   if (c.ougi.length) {
     L.push(""); L.push("■ 오의");
     c.ougi.forEach(function (o) {
@@ -1443,6 +1446,7 @@ function sheetBody(c) {
     "<div><h4>무공</h4><ul>" + atkLine(c) + ((c.mg || []).map(function (n) { var r = find(DATA.muk, n); return "<li><b>" + esc(r.n) + "</b> " + esc(r.t || "") + " · 간격 " + esc(r.r || "—") + " · 코스트 " + esc(r.c || "—") + (r.sk && r.sk !== "—" ? " · 《" + esc(r.sk) + "》" : "") + '<div class="eff">' + esc(r.e) + "</div></li>"; }).join("")) + "</ul></div>" +
     "<div><h4>배경</h4><ul>" + ((c.bg || []).map(function (n) { var r = find(DATA.bg, n); return "<li><b>" + esc(r.n) + "</b> " + esc(r.t || "") + '<div class="eff">' + esc(r.e) + "</div></li>"; }).join("") || '<li class="hint">아직 없음</li>') + "</ul></div>" +
     (it.length ? "<div><h4>보급품</h4><div>" + it.map(function (n) { return esc(n) + " ×" + c.items[n]; }).join(" · ") + "</div></div>" : "") +
+    "<div><h4>소지금</h4><div>" + (Number(c.money) || 0) + "냥</div></div>" +
     (!(c.ougi || []).length && c.ogN ? '<div><h4>오의</h4><div class="hint">' + c.ogN + "개 · 본인과 GM만 볼 수 있어요</div></div>" : "") +
     ((c.ougi || []).length ? "<div><h4>오의</h4><ul>" + c.ougi.map(function (o) { return "<li><b>" + esc(o.name || "무명 오의") + "</b> 《" + esc(o.skill || "?") + "》 " + esc(o.form || "") + ((o.mods || []).length ? '<div class="eff">' + o.mods.map(esc).join(", ") + "</div>" : "") + "</li>"; }).join("") + "</ul></div>" : "") +
     ((c.expLog || []).length ? "<div><h4>경험치 기록</h4><ul class=\"xplog\">" + c.expLog.slice(-6).reverse().map(function (x) { return "<li><b>" + (x.n > 0 ? "+" : "") + x.n + "</b> " + esc(x.why || "") + ' <span class="hint">' + esc(fmtDate(x.at)) + "</span></li>"; }).join("") + "</ul></div>" : "") +
@@ -2094,7 +2098,8 @@ function exportToSheet(c, btn) {
         ["AO2", [[!!c.wrapH]]],
         ["Q27:Q47", mgCol],
         ["U25", [[c.atk || ""]]],
-        ["AQ4:AT9", supply]
+        ["AQ4:AT9", supply],
+        ["AT10", [[Number(c.money) || 0]]]
       ];
       if (c.gapManual) {
         var g = (c.gaps || []).map(Boolean), row = [];
