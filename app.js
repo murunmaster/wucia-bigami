@@ -303,7 +303,7 @@ function renderInn() {
   drawPosts();
   $("#innform").onsubmit = function (e) {
     e.preventDefault();
-    if (!DBH || !MY_ID) { $("#in-note").textContent = "오른쪽 아래 '구글로 로그인'을 누르면 글을 남길 수 있어요."; return; }
+    if (!DBH || !MY_ID) { $("#in-note").textContent = (STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 글을 남길 수 있어요." : "claude.ai에 로그인한 상태로 열어야 글을 남길 수 있어요."); return; }
     var a = $("#in-a").value.trim(), m = $("#in-m").value.trim(); if (!a || !m) return;
     var go = $("#in-go"); go.disabled = true;
     store("wx-alias", a);
@@ -679,6 +679,7 @@ function setupDb() {
     Promise.all([p1, p2]).then(function (v) {
       CAN_EDIT = !!v[0]; MY_ID = v[1]; drawNews(); drawPosts(); drawArchiveIfOpen();
       if (CAN_EDIT && window.gmOwner) gmOwner();
+      if (CAN_EDIT && !STANDALONE) addExportBtn();
       watchSecrets();
       if (/^#builder$|^#builder\b(?!-)/.test(location.hash || "") && $("#sheet")) drawSheet(cur());
 
@@ -1638,10 +1639,10 @@ function writeMine(list, player) {
 }
 function pubErr(e) {
   var c = e && e.code;
-  if (c === "no_db") return "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요.";
+  if (c === "no_db") return STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "명부는 claude.ai에 로그인한 상태로 이 페이지를 열어야 쓸 수 있어요.";
   if (c === "too_big") return "명부 한 장이 가득 찼어요. 초상을 지우거나 오래된 PC를 내려 주세요.";
   if (c === "quota_exceeded") return "명부 저장 공간이 가득 찼어요. 주인장에게 알려 주세요.";
-  return "명부에 올리지 못했어요. 잠시 뒤 다시 해 보세요.";
+  return STANDALONE ? "명부에 올리지 못했어요. 잠시 뒤 다시 해 보세요." : "명부에 올리지 못했어요. 공유 권한이 '참여자' 이상이어야 해요.";
 }
 function publishChar(c, quiet) {
   if (!playerName()) { if (!quiet) toast("명부 탭에서 플레이어 이름을 먼저 정해 주세요"); return Promise.reject({ code: "no_name" }); }
@@ -1680,7 +1681,7 @@ function renderArchive(sel) {
   if (STANDALONE) { view.innerHTML = head + '<div class="empty"><p>명부는 claude.ai에서 연 페이지에서만 볼 수 있어요.</p></div>'; return; }
   var mine = myPcs(), myName = playerName();
   var bar = '<form class="arch-me" id="arch-me"><label class="lbl" for="ar-pn">내 플레이어 이름</label><input id="ar-pn" maxlength="30" value="' + esc(myName) + '" placeholder="예: 루루"><button class="btn small" type="submit">정하기</button>' +
-    '<span class="hint">' + (MY_ID ? "인물지의 캐릭터 시트에서 '명부에 올리기'를 누르면 여기에 올라옵니다." : "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요.") + "</span></form>";
+    '<span class="hint">' + (MY_ID ? "인물지의 캐릭터 시트에서 '명부에 올리기'를 누르면 여기에 올라옵니다." : (STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "claude.ai에 로그인한 상태로 열어야 명부에 올릴 수 있어요.")) + "</span></form>";
   var detail = "";
   if (ARCH_SEL) {
     var p = ARCH_SEL.split("~"), doc = PCS.filter(function (d) { return d.id === p[0]; })[0], pc = doc && (doc.chars || []).filter(function (x) { return x.id === p[1]; })[0];
@@ -1941,31 +1942,70 @@ function addSyncBtn(mcp, art) {
   box.appendChild(b);
   b.onclick = function () { runSync(mcp, art, b); };
 }
+/* ───────── 주인장 전용: 저장소 전체 내보내기(바깥 사이트로 옮길 때) ───────── */
+function addExportBtn() {
+  if (document.getElementById("wx-export")) return;
+  var b = document.createElement("button");
+  b.id = "wx-export"; b.type = "button"; b.className = "btn small"; b.textContent = "자료 내보내기";
+  b.style.cssText = "position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:50";
+  document.body.appendChild(b);
+  b.onclick = function () {
+    var cols = ["site/notices/items", "pcs", "guestbook", "pcog", "gmg-8430c8fb1398196e6ddaf919", "gmn-8430c8fb1398196e6ddaf919", "gmgibo", "gmnpc"];
+    var out = [], left = cols.length; b.disabled = true; b.textContent = "모으는 중…";
+    cols.forEach(function (c) {
+      DBH.collection(c).get().then(function (s) {
+        s.docs.forEach(function (d) { out.push({ path: c + "/" + d.id, data: d.data() }); });
+      }).catch(function () { }).then(function () { if (--left === 0) done(); });
+    });
+    function done() {
+      var text = JSON.stringify({ from: "claude-artifact", at: new Date().toISOString(), docs: out });
+      b.disabled = false; b.textContent = "자료 내보내기";
+      var ok = false;
+      try {
+        var url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+        var a = document.createElement("a"); a.href = url; a.download = "wuxia-export.json"; document.body.appendChild(a); a.click(); a.remove(); ok = true;
+      } catch (x) { }
+      var box = document.createElement("div");
+      box.style.cssText = "position:fixed;inset:10% 8%;z-index:60;background:var(--paper-2);border:1px solid var(--line);padding:14px;display:flex;flex-direction:column;gap:8px";
+      box.innerHTML = '<b>문서 ' + out.length + '개를 모았어요.</b><span class="hint">' + (ok ? "파일(wuxia-export.json)이 내려받아졌을 거예요. 안 받아졌으면 아래 글을 전부 복사해 .json 파일로 저장해 주세요." : "아래 글을 전부 복사해 .json 파일로 저장해 주세요.") + '</span><textarea style="flex:1;font:12px monospace" readonly></textarea><div><button class="btn small" type="button" data-c>복사</button> <button class="btn small" type="button" data-x>닫기</button></div>';
+      document.body.appendChild(box);
+      var ta = box.querySelector("textarea"); ta.value = text;
+      box.querySelector("[data-c]").onclick = function () { ta.select(); try { navigator.clipboard.writeText(text).then(function () { toast("복사했어요"); }, function () { document.execCommand("copy"); toast("복사했어요"); }); } catch (x) { document.execCommand("copy"); } };
+      box.querySelector("[data-x]").onclick = function () { box.remove(); };
+    }
+  };
+}
 /* ───────── 무공 4차 개편: 사이트의 무공 목록을 시트 '인법출력리스트'에 한 번 써 넣는다 ─────────
    옛 목록은 '인법출력리스트(3차)' 탭에 사본으로 남겨 두었다. 다 쓰면 단추가 사라진다. */
-var PUSH_VER = "muk4-rn1108b";
+var PUSH_VER = "muk4-1109";
 var PUSH_CHECK = "적정존(寂靜尊)";
 var PUSH_LAST = 1433;
 function pushDone() { return store("wx-push") === PUSH_VER; }
 function addPushBtn(mcp) {
-  if (pushDone() || !hasData) return;
-  /* 다른 기기에서 이미 써 넣었으면 단추를 띄우지 않는다 */
-  mcp.callTool("Google Sheets", "get_values", { spreadsheetId: SHEET_ID, range: "인법출력리스트!B3:B" + PUSH_LAST }, { cache: false }).then(function (res) {
-    if (rows(res).some(function (r) { return r[0] === PUSH_CHECK; })) { store("wx-push", PUSH_VER); return; }
-    showPushBtn(mcp);
-  }, function () { showPushBtn(mcp); });
+  if (pushDone()) return;
+  /* 이 판(PUSH_VER)을 아직 시트에 쓰지 않았으면 단추를 바로 띄운다(무공 이름이 같아도 효과·내력이 바뀌었을 수 있다) */
+  showPushBtn(mcp);
 }
 function showPushBtn(mcp) {
   var box = $("#sync");
+  if (!box || $("#wx-push")) return;
   var b = document.createElement("button");
-  b.className = "btn small primary"; b.type = "button"; b.textContent = "무공 시트에 쓰기";
-  b.title = "4차 무공 " + DATA.muk.length + "개를 시트 '인법출력리스트'에 써 넣습니다. 옛 목록은 '인법출력리스트(3차)' 탭에 있어요.";
+  b.id = "wx-push"; b.className = "btn small primary"; b.type = "button"; b.textContent = "무공 시트에 쓰기";
+  b.title = "사이트의 무공 목록을 시트 '인법출력리스트'에 써 넣습니다. 옛 목록은 '인법출력리스트(3차)' 탭에 있어요.";
   box.appendChild(b);
   b.onclick = function () { runPush(mcp, b); };
 }
 function runPush(mcp, btn) {
+  if (!hasData) { loadData().then(function () { if (hasData) runPush(mcp, btn); else showStatus("무공 자료를 아직 못 불러왔어요. 새로고침 뒤 다시 눌러 주세요.", true); }); return; }
   var list = DATA.muk.filter(function (r) { return r && r.n; });
-  if (!window.confirm("4차 무공 " + list.length + "개를 시트 '인법출력리스트'에 써 넣을까요?\n지금 시트의 무공 목록(B3:K" + PUSH_LAST + ")은 지워지고, 옛 목록은 '인법출력리스트(3차)' 탭에 남아 있어요.")) return;
+  /* 이 화면에서는 확인 창(confirm)이 막혀 있을 수 있어, 단추를 두 번 누르는 것으로 확인한다 */
+  if (!btn.dataset.armed) {
+    btn.dataset.armed = "1"; btn.textContent = "한 번 더 누르면 씁니다 (" + list.length + "개)";
+    showStatus("시트의 무공 목록(B3:K" + PUSH_LAST + ")을 사이트 목록으로 바꿔 씁니다. 옛 목록은 '인법출력리스트(3차)' 탭에 남아 있어요. 맞으면 단추를 한 번 더 눌러 주세요.");
+    setTimeout(function () { if (btn.dataset.armed && !btn.disabled) { delete btn.dataset.armed; btn.textContent = "무공 시트에 쓰기"; } }, 8000);
+    return;
+  }
+  delete btn.dataset.armed;
   btn.disabled = true;
   var rowsOut = list.map(function (r) { return [r.n, r.t || "", r.lv || "", r.r || "", r.c || "", r.g || "", r.s || "", r.sk || "", r.e || "", r.d || ""]; });
   var blank = []; for (var i = 3 + rowsOut.length; i <= PUSH_LAST; i++) blank.push(["", "", "", "", "", "", "", "", "", ""]);
@@ -2003,7 +2043,7 @@ function runSync(mcp, art, btn) {
       out.gibo = rows(res[4]).filter(function (r) { return String(r[6]).toUpperCase() === "TRUE"; }).map(function (r) { return { n: r[0], t: r[1] || "", src: r[2] || "", p: r[3] || "", e: r[4] || "", d: r[5] || "" }; });
       out.skills = rows(res[5]).map(function (r) { return { f: r[0], n: r[1], d: r[2] && r[2] !== "#ERROR!" ? r[2] : "" }; });
       if (!out.muk.length) throw { code: "tool_error", message: "무공출력리스트가 비어 있어요" };
-      if (!pushDone() && !out.muk.some(function (r) { return r.n === PUSH_CHECK; })) throw { code: "tool_error", message: "시트에 아직 옛 무공 목록이 있어요. 먼저 '무공 시트에 쓰기'를 눌러 주세요" };
+      if (!pushDone()) throw { code: "tool_error", message: "사이트의 무공이 시트보다 새로워요. 먼저 '무공 시트에 쓰기'를 눌러 주세요(그대로 동기화하면 새 효과·내력이 지워져요)" };
       step = "Google Drive";
       showStatus("룰 문서를 읽는 중…");
       return mcp.callTool("Google Drive", "read_file_content", { fileId: DOC_ID }, { cache: false });
