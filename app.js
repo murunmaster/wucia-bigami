@@ -1568,12 +1568,12 @@ function shrinkImage(file) {
 }
 
 /* ── 경험치 ── */
-var EXP_QUICK = [[1, "판정 실패"], [2, "법식 달성"], [2, "캠페인 종료"], [-2, "특기 정비(리스펙)"]];
+var EXP_QUICK = [[1, "판정 실패"], [2, "법식 달성"], [2, "캠페인 종료"]];
 function nextLv(lv) { var i = LEVELS.indexOf(lv); return i >= 0 && i < LEVELS.length - 1 ? LEVELS[i + 1] : ""; }
 function expSectionHtml(c, L) {
   var nx = nextLv(c.lv), cost = nx ? LIMITS[nx].exp : 0;
   return '<section class="step"><div class="step-h"><h2>경험치</h2><span class="quota' + (nx && c.exp >= cost ? " full" : "") + '">보유 ' + (c.exp || 0) + "</span></div>" +
-    '<p class="hint">판정 실패 1점 · 법식 달성 2점(세션당 1번) · 캠페인 종료 2점. 리스펙에서 특기를 1개 바꿀 때마다 2점을 씁니다. 경지를 올리면 다음 경지의 경험치만큼 씁니다' + (nx ? " (" + esc(nx) + " " + cost + "점)." : ".") + "</p>" +
+    '<p class="hint">판정 실패 1점 · 법식 달성 2점(세션당 1번) · 캠페인 종료 2점. 경지를 올리면 다음 경지의 경험치만큼 씁니다' + (nx ? " (" + esc(nx) + " " + cost + "점)." : ".") + "</p>" +
     '<div class="xp-row">' + EXP_QUICK.map(function (q, i) { return '<button class="btn small" type="button" data-xq="' + i + '">' + (q[0] > 0 ? "+" : "") + q[0] + " " + q[1] + "</button>"; }).join("") +
     '<span class="xp-custom"><input type="number" id="b-xpn" step="1" aria-label="경험치 수" placeholder="±"><input id="b-xpw" maxlength="40" aria-label="사유" placeholder="사유(선택)"><button class="btn small" type="button" id="b-xpadd">기록</button></span></div>' +
     (nx ? '<div><button class="btn small primary" type="button" id="b-lvup"' + (c.exp >= cost ? "" : " disabled") + ">" + esc(nx) + "(으)로 경지 올리기 · " + cost + "점 사용</button></div>" : '<p class="hint">이미 가장 높은 경지예요.</p>') +
