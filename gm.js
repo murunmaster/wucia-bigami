@@ -61,7 +61,7 @@
     var t = setTimeout(function () { if (!GM.giboReady) { GM.err = "자료를 아직 불러오지 못했어요. 연결이 느릴 수 있어요."; redraw(); } }, 10000);
     db.collection(COL_G).onSnapshot(function (s) {
       GM.gibo = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
-      if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; }
+      if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; migrateGiboD(); }
       redraw();
     }, function (err) { clearTimeout(t); GM.err = "기보 자료를 읽지 못했어요 (" + (err && err.code || "오류") + ")."; redraw(); });
     db.collection(COL_N).onSnapshot(function (s) {
@@ -69,6 +69,18 @@
       if (!s.metadata.fromCache) { GM.npcReady = true; migrateNpcOg(); }
       redraw();
     }, function () { GM.npcReady = true; redraw(); });
+  }
+  /* 기보 내력 프롬식으로 바꾸기(11-09, gibod.js): 서고를 처음 열 때 한 번 옮겨 적는다 */
+  function migrateGiboD() {
+    if (!DB || !window.WX_GIBO_D || GM.gdMig) return; GM.gdMig = true;
+    var n0 = 0, V = window.WX_GIBO_DV || 1;
+    GM.gibo.forEach(function (r) {
+      var t = WX_GIBO_D[r.n];
+      if (!t || (r.dv || 0) >= V) return;
+      n0++; r.d = t; r.dv = V;
+      DB.collection(COL_G).doc(r.id).update({ d: t, dv: V }).catch(function () { });
+    });
+    if (n0 && window.toast) toast("기보 " + n0 + "개의 내력을 새 글로 바꿨어요");
   }
   /* 옛 오의 6형태 폐지(11-08): 서고 NPC 시트의 옛 형태 오의를 새 형태로 옮겨 저장한다. 이름·지정특기는 그대로, 새 형태에 안 붙는 개조는 뗀다(rulefix.js WX_OG). 한 번만 돈다 */
   function migrateNpcOg() {
@@ -226,7 +238,7 @@
   function giboEditor(r) {
     var m = mapById(r.map);
     return '<form class="gm-ed" data-kind="gibo" data-id="' + e(r.id) + '">' +
-      '<div class="gm-text"><p>' + e(r.e) + '</p>' + (r.d ? '<p class="hint">' + e(r.d) + "</p>" : "") + "</div>" +
+      '<div class="gm-text"><p>' + e(r.e) + '</p>' + (r.d ? '<p class="lore">' + e(r.d) + "</p>" : "") + "</div>" +
       '<div class="gm-grid">' +
       '<div class="field"><label for="ed-st">상태</label><select id="ed-st" data-ed="status">' + STATUS.map(function (s) { return "<option" + (s === (r.status || "미정") ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select></div>" +
       '<div class="field"><label for="ed-map">지도</label><select id="ed-map" data-ed="map">' + mapOpts(r.map) + "</select></div>" +
