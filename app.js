@@ -303,7 +303,7 @@ function renderInn() {
   drawPosts();
   $("#innform").onsubmit = function (e) {
     e.preventDefault();
-    if (!DBH || !MY_ID) { $("#in-note").textContent = (STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 글을 남길 수 있어요." : "claude.ai에 로그인한 상태로 열어야 글을 남길 수 있어요."); return; }
+    if (!DBH || !MY_ID) { $("#in-note").textContent = (window.WX_FB ? "오른쪽 아래 '구글로 로그인'을 누르면 글을 남길 수 있어요." : "claude.ai에 로그인한 상태로 열어야 글을 남길 수 있어요."); return; }
     var a = $("#in-a").value.trim(), m = $("#in-m").value.trim(); if (!a || !m) return;
     var go = $("#in-go"); go.disabled = true;
     store("wx-alias", a);
@@ -679,7 +679,7 @@ function setupDb() {
     Promise.all([p1, p2]).then(function (v) {
       CAN_EDIT = !!v[0]; MY_ID = v[1]; drawNews(); drawPosts(); drawArchiveIfOpen();
       if (CAN_EDIT && window.gmOwner) gmOwner();
-      if (CAN_EDIT && !STANDALONE) addExportBtn();
+      if (CAN_EDIT && !window.WX_FB) addExportBtn();
       watchSecrets();
       if (/^#builder$|^#builder\b(?!-)/.test(location.hash || "") && $("#sheet")) drawSheet(cur());
 
@@ -1639,10 +1639,10 @@ function writeMine(list, player) {
 }
 function pubErr(e) {
   var c = e && e.code;
-  if (c === "no_db") return STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "명부는 claude.ai에 로그인한 상태로 이 페이지를 열어야 쓸 수 있어요.";
+  if (c === "no_db") return window.WX_FB ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "명부는 claude.ai에 로그인한 상태로 이 페이지를 열어야 쓸 수 있어요.";
   if (c === "too_big") return "명부 한 장이 가득 찼어요. 초상을 지우거나 오래된 PC를 내려 주세요.";
   if (c === "quota_exceeded") return "명부 저장 공간이 가득 찼어요. 주인장에게 알려 주세요.";
-  return STANDALONE ? "명부에 올리지 못했어요. 잠시 뒤 다시 해 보세요." : "명부에 올리지 못했어요. 공유 권한이 '참여자' 이상이어야 해요.";
+  return window.WX_FB ? "명부에 올리지 못했어요. 잠시 뒤 다시 해 보세요." : "명부에 올리지 못했어요. 공유 권한이 '참여자' 이상이어야 해요.";
 }
 function publishChar(c, quiet) {
   if (!playerName()) { if (!quiet) toast("명부 탭에서 플레이어 이름을 먼저 정해 주세요"); return Promise.reject({ code: "no_name" }); }
@@ -1681,7 +1681,7 @@ function renderArchive(sel) {
   if (STANDALONE) { view.innerHTML = head + '<div class="empty"><p>명부는 claude.ai에서 연 페이지에서만 볼 수 있어요.</p></div>'; return; }
   var mine = myPcs(), myName = playerName();
   var bar = '<form class="arch-me" id="arch-me"><label class="lbl" for="ar-pn">내 플레이어 이름</label><input id="ar-pn" maxlength="30" value="' + esc(myName) + '" placeholder="예: 루루"><button class="btn small" type="submit">정하기</button>' +
-    '<span class="hint">' + (MY_ID ? "인물지의 캐릭터 시트에서 '명부에 올리기'를 누르면 여기에 올라옵니다." : (STANDALONE ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "claude.ai에 로그인한 상태로 열어야 명부에 올릴 수 있어요.")) + "</span></form>";
+    '<span class="hint">' + (MY_ID ? "인물지의 캐릭터 시트에서 '명부에 올리기'를 누르면 여기에 올라옵니다." : (window.WX_FB ? "오른쪽 아래 '구글로 로그인'을 누르면 명부에 올릴 수 있어요." : "claude.ai에 로그인한 상태로 열어야 명부에 올릴 수 있어요.")) + "</span></form>";
   var detail = "";
   if (ARCH_SEL) {
     var p = ARCH_SEL.split("~"), doc = PCS.filter(function (d) { return d.id === p[0]; })[0], pc = doc && (doc.chars || []).filter(function (x) { return x.id === p[1]; })[0];

@@ -2,6 +2,7 @@
    db  = Firestore(compat) 그대로. 문서·컬렉션·onSnapshot 모양이 같다.
    user = 구글 로그인. 주인장 = WX_OWNER_EMAIL 계정.
    mcp·artifact(시트 동기화·게시)는 없다 → null. */
+window.WX_FB = true;
 (function () {
   var cfg = window.WX_FB_CONFIG;
   var ready;
