@@ -1093,7 +1093,7 @@ function renderMods() {
 function modFits(m, form) { return !m.tgt || m.tgt.indexOf("모든") >= 0 || m.tgt.indexOf(form) >= 0; }
 
 /* ───────── 캐릭터 빌더 ───────── */
-function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, mkVer: 2, notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
+function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, mkVer: (window.WX_MK_VER || 3), notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
 var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 /* 예전에 만든 캐릭터에도 새 칸을 채운다 */
 var BASIC_ATK = "접근전 공격";
@@ -1977,7 +1977,7 @@ function addExportBtn() {
 }
 /* ───────── 무공 4차 개편: 사이트의 무공 목록을 시트 '인법출력리스트'에 한 번 써 넣는다 ─────────
    옛 목록은 '인법출력리스트(3차)' 탭에 사본으로 남겨 두었다. 다 쓰면 단추가 사라진다. */
-var PUSH_VER = "muk4-1109c";
+var PUSH_VER = "muk4-1109d";
 var PUSH_CHECK = "적정존(寂靜尊)";
 var PUSH_LAST = 1433;
 function pushDone() { return store("wx-push") === PUSH_VER; }
