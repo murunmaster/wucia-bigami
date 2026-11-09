@@ -16,7 +16,7 @@
   var CURE = { "고장": "도구", "마비": "단련", "외상": "의술", "행방불명": "추적", "망각": "섭혼", "내상": "운기", "한기": "양기", "빙결": "양기", "단장독": "의술" };
   var N = 6, LV = ["삼류", "이류", "일류", "절정", "화경", "현경"];
   /* 규칙 손잡이. 오의는 2차 개편안(확정) 값. 무공 쪽(mukLvDm 등)은 무공 개편 전이라 지금 룰북 그대로 */
-  var RULES = { ogNear: 3, ogFar: 2, ogWide: 1, ogGuard: 2, ogCounter: 2, ogSpend: true, ogCheck: false, killDeclare: true, mukLvDm: 0, mukCostDown: 0, signature: {}, mkCap: 3, condOff: {}, mkOff: {}, mkLose: {}, mkTick: {}, mkBurst: {}, newOg: { chainN: 3, chainAdv: 1, drainCl: 2, drainHp: 2, dashMv: 4, dashHd: 2, dashEd: 1, dashDm: 1, dashNeg: 1, auraDr: 1, auraDur: 2, auraSt: true } };
+  var RULES = { ogNear: 3, ogFar: 2, ogWide: 1, ogGuard: 2, ogCounter: 2, ogSpend: true, ogCheck: false, killDeclare: true, mukLvDm: 0, mukCostDown: 0, signature: {}, mkCap: 3, condOff: {}, mkOff: {}, mkLose: {}, mkTick: {}, mkBurst: {}, newOg: { chainN: 3, chainAdv: 1, drainCl: 2, drainHp: 2, dashMv: 4, dashHd: 2, dashEd: 1, dashDm: 1, dashNeg: 1, auraDr: 1, auraDur: 2, auraSt: true, auraOnce: 3 } };
 
   function d6() { return 1 + Math.floor(Math.random() * 6); }
   function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
@@ -422,6 +422,7 @@
       var dr = this.mod(f, "dr", src, o.atk, o.dsup, true);
       this.zones.forEach(function (z) { if (z.kind === "dr" && z.side === f.side && cheb(z.c, f.pos) <= z.rad && n > 0) dr += z.v; });
       if (o.ogDr) dr += o.ogDr;
+      var once0 = f.buffs.filter(function (b) { return b.key === "drOnce" && b.v > 0; })[0]; if (once0 && n > 0) { dr += once0.v; once0.v = 0; }
       if (dr > 0 && n > 0) {
         var cut = Math.min(n, dr); n -= cut; this.say(f.name + " — 대미지 " + cut + "점을 줄인다", "dim");
         if (src && hasBuff(f, "thornsg") && this.limOk(f, { id: f.id + "tg" + src.id, lim: { t: "r", n: 1 } })) { this.limUse(f, { id: f.id + "tg" + src.id, lim: { t: "r", n: 1 } }); this.say(f.name + " — 반진", "og"); this.hurt(src, "집단전", 1, f); }
@@ -692,7 +693,7 @@
     }
     else if (k === "aura") {
       var NO4 = RULES.newOg, ad = NO4.auraDr + (hasMod(o, "두르기") ? 1 : 0) - (hasMod(o, "박벽") ? 1 : 0), au = NO4.auraDur + (hasMod(o, "버티기") ? 1 : 0);
-      this.friends(f).filter(function (g) { return cheb(g.pos, f.pos) <= (hasMod(o, "나누기") ? 2 : 1); }).forEach(function (g) { g.buffs.push({ key: "dr", v: ad, left: au }); if (NO4.auraSt || hasMod(o, "씻기")) g.buffs.push({ key: "immunest", v: 1, left: au }); if (hasMod(o, "반진")) g.buffs.push({ key: "thornsg", v: 1, left: au }); });
+      this.friends(f).filter(function (g) { return cheb(g.pos, f.pos) <= (hasMod(o, "나누기") ? 2 : 1); }).forEach(function (g) { g.buffs.push({ key: "dr", v: ad, left: au }); if (g === f) g.buffs.push({ key: "drOnce", v: NO4.auraOnce, left: au }); if (NO4.auraSt || hasMod(o, "씻기")) g.buffs.push({ key: "immunest", v: 1, left: au }); if (hasMod(o, "반진")) g.buffs.push({ key: "thornsg", v: 1, left: au }); });
       if (hasMod(o, "고정")) f.buffs.push({ key: "immob", v: 1, left: 2 });
     }
     else if (k === "zdr") this.zones.push({ kind: "dr", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: 1, rounds: dur, v: 2 + (hasMod(o, "두르기") ? 1 : 0) - (hasMod(o, "박벽") ? 1 : 0), follow: hasMod(o, "따르기") ? f : null });
