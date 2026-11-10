@@ -25,35 +25,45 @@
     "i": ["얼음", "이 칸에서 이동을 마치면 온 방향으로 1칸 더 미끄러진다.", 1]
   };
   var BLOCK = { "#": 1, "_": 1 };
+  /* 구역 성격(zones.js의 t, 이름) → 묶음. 앞에 있는 것부터 맞춰 본다 */
+  var ZMAP = [["ruin", /폐허|고분|능묘|무덤|옛 절|폐사|옛 도읍|옛 성터|기관|미로/], ["snow", /설산|설원|빙하|빙|얼음/], ["cave", /석굴|동굴|굴$|비동/], ["cliff", /벼랑|잔도|봉우리|정상|절벽|능선|돌계단|바위|언덕|다리/],
+    ["water", /수상|갈대|호수|바다|뱃길|늪|수중/], ["shore", /수변|나루|강|운하|항구|섬|폭포|물가|제방|해구|해안$|온천|샘|^항$|밀무역/], ["gate", /관문|성채|성벽|산채|폐성|성문|장성/], ["temple", /사찰|도관|사당|탑|절|연무장|궁|산문|성지|서원|승원|비석/],
+    ["inn", /객잔|저택|장원|기루|누각|감옥|본가|본거지|객관|서각|역참|학당|약원|원림|정자/], ["village", /촌락|마을|천막/], ["waste", /황야|초원|사막|싸움터/], ["wild", /산야|산림|숲|협곡|산악|명산|고개|계곡|차밭|험로|산/], ["street", /시가|관청|저자|유흥|고을|도읍|도성|시장|성도|야간|야외|관도|입구|^벽$/]];
+  function setForZone(t, name) {
+    var a = String(t || ""), b = String(name || ""), i;
+    for (i = 0; i < ZMAP.length; i++) if (ZMAP[i][1].test(a)) return ZMAP[i][0];
+    for (i = 0; i < ZMAP.length; i++) if (ZMAP[i][1].test(b)) return ZMAP[i][0];
+    return "";
+  }
 
   /* ── 묶음: 구역 성격별. floor = 바닥색, obs = 장애물의 생김새, gen = 무작위 생성 때 쓰는 지형과 비중, maps = 손으로 만든 맵 ── */
   var SETS = [
     { id: "street", n: "시가·저자", z: "성도, 시가, 저자, 유흥가, 관청 앞", floor: "#d9d0bd", obs: "수레·담장", gen: { "#": 4, c: 3, "~": 1 },
-      maps: [{ n: "저잣거리", rows: ["A.#..B", "A.c...", "...#.B", "A.#...", "...c.B", "A..#.B"], memo: "좌판과 수레가 길을 끊는다." }] },
+      maps: [{ n: "저잣거리", rows: ["A.#..B", "A.c...", "...#.B", "A.#...", "...c.B", "A..#.B"], memo: "좌판과 수레가 길을 끊는다." }, { n: "네거리", rows: ["A.#..B", "A....B", "..c#..", "..#c..", "A....B", "A..#.B"], memo: "길 넷이 만나는 자리. 가운데가 막혀 돌아가야 한다." }, { n: "관아 앞", rows: ["A#..#B", "A....B", "A.cc.B", "A....B", "A....B", ".#..#."], memo: "돌사자 넷, 가운데 하마비가 엄폐." }] },
     { id: "inn", n: "객잔·저택", z: "관도 객잔, 저택, 기루, 본가 내원", floor: "#cbb898", obs: "기둥·탁자", gen: { "#": 4, c: 4 },
-      maps: [{ n: "객잔 대청", rows: ["A.c..B", "A#..#.", "..c..B", "A..c..", ".#..#B", "A..c.B"], memo: "기둥 넷, 엎은 탁자가 엄폐." }] },
+      maps: [{ n: "객잔 대청", rows: ["A.c..B", "A#..#.", "..c..B", "A..c..", ".#..#B", "A..c.B"], memo: "기둥 넷, 엎은 탁자가 엄폐." }, { n: "뒤뜰", rows: ["A.b..B", "A.#..B", "..c.c.", "A....B", "A..#.B", ".b...B"], memo: "장독대와 우물, 담 밑 수풀." }, { n: "연회장", rows: ["A.c.c.", "A....B", "A#..#B", "A#..#B", "A....B", ".c.c.B"], memo: "가운데가 트인 큰 방. 기둥 넷." }] },
     { id: "temple", n: "사찰·도관", z: "사찰, 도관, 사당, 탑전, 본산 대전", floor: "#d3cab6", obs: "향로·석등", gen: { "#": 3, "^": 3, c: 2 },
-      maps: [{ n: "대전 앞마당", rows: ["A..^^B", "A.#^^B", "A....B", "A....B", "A.#^^B", "...^^."], memo: "가운데 길 양옆이 섬돌 위 고지." }] },
+      maps: [{ n: "대전 앞마당", rows: ["A..^^B", "A.#^^B", "A....B", "A....B", "A.#^^B", "...^^."], memo: "가운데 길 양옆이 섬돌 위 고지." }, { n: "탑 아래", rows: ["A....B", "A.c..B", "..##..", "..##..", "A..c.B", "A....B"], memo: "가운데 탑이 시야를 끊는다." }, { n: "산문 돌계단", rows: ["A..^^B", "A..^^B", "A.#^^B", "A..^^B", "A.c^^B", "...^^."], memo: "지키는 쪽(을)이 계단 위에 선다." }] },
     { id: "village", n: "촌락", z: "촌락, 천막촌, 절 마을", floor: "#d0c8a5", obs: "초가·우물", gen: { "#": 3, c: 2, b: 2, "~": 2 },
-      maps: [{ n: "마을 어귀", rows: ["A.b#.B", "A....B", "..#c..", "A.c...", "A...~B", ".b.#.B"], memo: "초가 사이 고샅길." }] },
+      maps: [{ n: "마을 어귀", rows: ["A.b#.B", "A....B", "..#c..", "A.c...", "A...~B", ".b.#.B"], memo: "초가 사이 고샅길." }, { n: "우물가", rows: ["A.#..B", "A...cB", "..#..B", "A.~b..", "A..#.B", "b....."], memo: "초가 셋과 우물." }, { n: "논두렁", rows: ["A.~~.B", "A.~~.B", "A....B", "..c...", "A.~~.B", ".b~~.B"], memo: "무논이 험지. 두렁길로만 빠르게 지난다." }] },
     { id: "wild", n: "산야·숲", z: "산야, 숲, 협곡, 산길", floor: "#bcc7a2", obs: "바위·고목", gen: { b: 4, "#": 3, "~": 3, "^": 2 },
-      maps: [{ n: "숲속 빈터", rows: ["Ab.#.B", "A..b~B", ".#...B", "A...#.", "A~b..B", "..#.b."], memo: "수풀이 많아 매복하기 좋다." }] },
+      maps: [{ n: "숲속 빈터", rows: ["Ab.#.B", "A..b~B", ".#...B", "A...#.", "A~b..B", "..#.b."], memo: "수풀이 많아 매복하기 좋다." }, { n: "산등성이", rows: ["A.^^.B", "A~^^.B", "..#...", "...#..", "A.^^~B", "A.^^.B"], memo: "등성이를 먼저 잡는 쪽이 유리하다." }, { n: "대숲", rows: ["AbbbbB", "A.b.b.", "...#.B", "A#....", "Ab.b.B", ".bbbbB"], memo: "어디서든 숨는다." }] },
     { id: "shore", n: "수변·나루", z: "나루, 물가, 강가, 호숫가", floor: "#d2cbad", obs: "짐더미·말뚝", gen: { w: 5, "#": 2, c: 2 },
-      maps: [{ n: "나루터", rows: ["A.#.wB", "A...ww", "A.c.=B", "...#.B", "A.wwwB", "..www."], memo: "물이 판을 파고든다. 잔교 하나." }] },
+      maps: [{ n: "나루터", rows: ["A.#.wB", "A...ww", "A.c.=B", "...#.B", "A.wwwB", "..www."], memo: "물이 판을 파고든다. 잔교 하나." }, { n: "강변 자갈밭", rows: ["wwwwww", "A.~..B", "A.#..B", "A..c.B", "A.~..B", "Awww.B"], memo: "위아래가 강물." }, { n: "선착장", rows: ["A...wB", "A.c.=B", "A#..ww", "A..c.B", "A....B", "..#..B"], memo: "배 댄 자리. 잔교 하나." }] },
     { id: "water", n: "수상·갈대", z: "수상, 갈대숲, 뗏목길, 배 위", floor: "#c3cdb8", obs: "돛대·선실", gen: { w: 7, b: 3, "#": 1 },
-      maps: [{ n: "갈대숲 뱃길", rows: ["Abww.B", "A.wwbB", "..b.w.", "Aw..b.", "Awwb.B", ".bww.B"], memo: "마른 땅이 띄엄띄엄 있다." }] },
+      maps: [{ n: "갈대숲 뱃길", rows: ["Abww.B", "A.wwbB", "..b.w.", "Aw..b.", "Awwb.B", ".bww.B"], memo: "마른 땅이 띄엄띄엄 있다." }, { n: "뗏목 위", rows: ["wwwwww", "wA..Bw", "wA#.Bw", "wA.#Bw", "wA..Bw", "wwwwww"], memo: "사방이 물인 좁은 판. 밀리면 빠진다." }, { n: "수초 늪", rows: ["Ab.wwB", "A..w.B", "..~b..", "..b~..", "A.w..B", "Aww.bB"], memo: "물과 뻘과 수풀이 섞였다." }] },
     { id: "cliff", n: "벼랑·잔도", z: "벼랑, 잔도, 봉우리, 정상", floor: "#c6c0b2", obs: "암벽", gen: { "_": 5, "=": 2, "^": 2, "#": 2 },
-      maps: [{ n: "벼랑 잔도", rows: ["A.#__B", "A.==.B", "..__..", "A.__#.", "A.==.B", "..__.B"], memo: "잔도 둘로만 건넌다. 밀리면 떨어진다." }] },
+      maps: [{ n: "벼랑 잔도", rows: ["A.#__B", "A.==.B", "..__..", "A.__#.", "A.==.B", "..__.B"], memo: "잔도 둘로만 건넌다. 밀리면 떨어진다." }, { n: "외나무다리", rows: ["A.__.B", "A.__.B", "A.==.B", "A.__.B", "A.__.B", "..__.."], memo: "다리 하나로만 건넌다." }, { n: "절벽 끝", rows: ["A...^B", "A.#.^B", "A....B", "A..c.B", "______", "______"], memo: "아래쪽이 낭떠러지. 등지면 위험하다." }] },
     { id: "cave", n: "석굴·동굴", z: "석굴, 동굴, 종유굴, 비동", floor: "#aaa49a", obs: "석주·불상", gen: { "#": 4, "~": 3, v: 2, c: 1 },
-      maps: [{ n: "종유굴", rows: ["A.#..B", "A~..#B", "..vv..", "A.vv~.", "A#...B", "..~#.B"], memo: "가운데가 꺼진 굴." }] },
+      maps: [{ n: "종유굴", rows: ["A.#..B", "A~..#B", "..vv..", "A.vv~.", "A#...B", "..~#.B"], memo: "가운데가 꺼진 굴." }, { n: "지하 물길", rows: ["A.#.wB", "A...wB", "..~ww.", "A.ww#.", "A.w..B", "..w~.B"], memo: "굴 속을 물이 가로지른다." }, { n: "석불 동굴", rows: ["A#..#B", "A....B", "..cc..", "A....B", "A#..#B", "A....B"], memo: "석주 넷, 가운데 불단이 엄폐." }] },
     { id: "waste", n: "황야·초원", z: "황야, 초원, 사막, 옛 싸움터", floor: "#d8c99e", obs: "바위", gen: { "~": 3, v: 3, "^": 3, b: 1 },
-      maps: [{ n: "모래 언덕", rows: ["A..^^B", "A~.^.B", "..v...", "A.vv~.", "A....B", ".^..~B"], memo: "언덕과 모래 구덩이." }] },
+      maps: [{ n: "모래 언덕", rows: ["A..^^B", "A~.^.B", "..v...", "A.vv~.", "A....B", ".^..~B"], memo: "언덕과 모래 구덩이." }, { n: "마른 강바닥", rows: ["A.vv.B", "A.vv.B", "..vv..", "A.vv~.", "A~vv.B", "..vv.B"], memo: "가운데 골이 분지. 건너려면 내려갔다 올라와야 한다." }, { n: "옛 싸움터", rows: ["A.~..B", "A..#.B", ".c..!.", ".!..c.", "A.#..B", "A..~.B"], memo: "마기가 고인 웅덩이 둘.", hazard: "마기 웅덩이" }] },
     { id: "snow", n: "설원·빙하", z: "설원, 빙하, 얼어붙은 호수", floor: "#e5e9eb", obs: "얼음 기둥", gen: { i: 5, "~": 3, "#": 2 },
-      maps: [{ n: "얼어붙은 호수", rows: ["A.~..B", "A.ii.B", ".iii#.", "A#iii.", "A.ii.B", "..~..B"], memo: "가운데가 빙판. 가장자리는 눈더미." }] },
+      maps: [{ n: "얼어붙은 호수", rows: ["A.~..B", "A.ii.B", ".iii#.", "A#iii.", "A.ii.B", "..~..B"], memo: "가운데가 빙판. 가장자리는 눈더미." }, { n: "눈보라 고개", rows: ["A.~~.B", "A.#..B", "..~~..", "A.~~..", "A..#.B", ".~~..B"], memo: "눈더미가 발을 잡는다." }, { n: "빙벽 아래", rows: ["A.#i.B", "A.ii.B", "A.i^^.", "..i^^B", "A.ii.B", "..#i.B"], memo: "얼음 띠와 바위턱." }] },
     { id: "gate", n: "관문·성벽", z: "관문, 성문, 성벽, 산채", floor: "#c9c3b5", obs: "성벽", gen: { "#": 5, "^": 3, D: 1, c: 2 },
-      maps: [{ n: "관문 앞", rows: ["A.c#^B", "A..#^B", "A..D.B", "A..#^B", "..c#^.", "A...^B"], memo: "문 하나, 성벽 위가 고지." }] },
+      maps: [{ n: "관문 앞", rows: ["A.c#^B", "A..#^B", "A..D.B", "A..#^B", "..c#^.", "A...^B"], memo: "문 하나, 성벽 위가 고지." }, { n: "성벽 위", rows: ["______", "A.c..B", "A....B", "A.#c.B", "A....B", "______"], memo: "좁고 긴 성가퀴. 양옆이 허공." }, { n: "산채 목책", rows: ["A..#.B", "A..#.B", "A..D.B", "..c#..", "A..#^B", "A..D^B"], memo: "문 둘. 망루가 고지." }] },
     { id: "ruin", n: "폐허·고분", z: "폐허, 고분, 폐사, 기관 미로(던전)", floor: "#b6af9f", obs: "무너진 벽·석관", gen: { "#": 4, T: 2, "~": 2, "!": 1, D: 1 },
-      maps: [{ n: "묘실", rows: ["A.#..B", "A.T.#B", "..#D#.", "A....B", "A#.T.B", ".~..!.", ], memo: "함정 둘, 독무 한 칸.", hazard: "독무" }] }
+      maps: [{ n: "묘실", rows: ["A.#..B", "A.T.#B", "..#D#.", "A....B", "A#.T.B", ".~..!.", ], memo: "함정 둘, 독무 한 칸.", hazard: "독무" }, { n: "무너진 전각", rows: ["A.#~.B", "A....B", ".~#.c.", ".c.#~.", "A....B", "A.~#.B"], memo: "무너진 벽과 기와 더미." }, { n: "기관실", rows: ["A.T..B", "A#.#.B", "..T.D.", "A#.#..", "A..T.B", "..!..B"], memo: "함정 셋, 불 뿜는 구멍 하나.", hazard: "화염 분사구" }] }
   ];
 
   /* ── 원본 읽기 ── */
@@ -150,11 +160,12 @@
   function setOf(id) { return SETS.filter(function (s) { return s.id === id; })[0] || SETS[0]; }
   function mine() { return (A().store("wx-fields") || []); }
   function load(set, i) { var mp = set.maps[i] || set.maps[0]; UI.set = set.id; UI.idx = i; UI.m = parse(mp.rows); UI.name = mp.n; UI.memo = mp.memo || ""; }
-  function render(view) {
-    var api = A(), set = setOf(UI.set); if (!UI.m) load(set, 0);
+  function render(view, setId) {
+    var api = A(); if (setId && setOf(setId).id === setId && (setId !== UI.set || !UI.m)) load(setOf(setId), 0);
+    var set = setOf(UI.set); if (!UI.m) load(set, 0);
     var used = {}; UI.m.g.forEach(function (r) { r.forEach(function (c) { used[c] = 1; }); });
     var my = mine();
-    view.innerHTML = api.viewHead("builder", "6×6 전투판에 까는 지형 맵입니다. 구역 성격에 맞는 묶음에서 고르거나 무작위로 만들고, 코코포리아에 넣을 그림으로 내려받습니다. 지형 효과는 룰북 '전투'의 지형 규칙을 따릅니다.") + api.builderTabs("field") +
+    view.innerHTML = api.viewHead("map", "전장도(戰場圖) — 6×6 전투판에 까는 지형 맵입니다. 싸움이 난 구역의 성격에 맞는 묶음에서 고르거나 무작위로 만들고, 코코포리아에 넣을 그림으로 내려받습니다. 지형 효과는 율령 '전투'의 지형 규칙을 따릅니다.") + '<nav class="subtabs" aria-label="강호도"><a href="#map">전도·구역도</a><a href="#map-f" aria-current="page">전장도(戰場圖)</a></nav>' +
       '<div class="fld"><aside class="fld-side"><h3>묶음</h3><div class="chips">' + SETS.map(function (s) { return '<button type="button" class="chip' + (s.id === set.id ? " on" : "") + '" data-set="' + s.id + '">' + esc(s.n) + "</button>"; }).join("") + "</div>" +
       '<p class="hint">' + esc(set.z) + " · 장애물: " + esc(set.obs) + "</p>" +
       "<h3>맵</h3><div class=\"fld-list\">" + set.maps.map(function (mp, i) { return '<button type="button" class="btn small' + (UI.idx === i ? " primary" : "") + '" data-map="' + i + '">' + esc(mp.n) + "</button>"; }).join("") +
@@ -172,7 +183,7 @@
     function again() { render(view); }
     view.querySelector(".fld-side").onclick = function (ev) {
       var b = ev.target.closest("button"); if (!b) return;
-      if (b.dataset.set) { load(setOf(b.dataset.set), 0); again(); }
+      if (b.dataset.set) { load(setOf(b.dataset.set), 0); if (history.replaceState) history.replaceState(null, "", "#map-f-" + b.dataset.set); again(); }
       else if (b.dataset.map) { load(set, +b.dataset.map); again(); }
       else if (b.id === "fld-gen") { UI.m = generate(set); UI.idx = -1; UI.name = set.n + " 무작위"; UI.memo = ""; again(); }
       else if (b.dataset.my) { var mp = mine()[+b.dataset.my]; if (mp) { UI.set = mp.set || UI.set; UI.idx = -1; UI.m = parse(mp.rows); UI.name = mp.n; UI.memo = ""; again(); } }
@@ -194,5 +205,5 @@
     view.querySelector("#fld-code").onclick = function () { var t = toRows(UI.m).join("\n"); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { api.toast("맵 코드를 복사했어요"); }, function () { api.toast("복사하지 못했어요"); }); };
     view.querySelector("#fld-keep").onclick = function () { var l = mine(); l.push({ n: UI.name || "이름 없는 맵", set: set.id, rows: toRows(UI.m) }); api.store("wx-fields", l); api.toast("내 맵에 담았어요(이 브라우저에만 남아요)"); again(); };
   }
-  window.WX_FIELD = { terr: TERR, sets: SETS, parse: parse, toRows: toRows, generate: generate, connected: connected, svg: svg, savePng: savePng, setOf: setOf, render: render };
+  window.WX_FIELD = { terr: TERR, sets: SETS, parse: parse, toRows: toRows, generate: generate, connected: connected, svg: svg, savePng: savePng, setOf: setOf, setForZone: setForZone, render: render };
 })();

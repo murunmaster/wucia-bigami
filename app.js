@@ -133,8 +133,9 @@ function route() {
   var full = (location.hash || "").slice(1);
   var h = full.split("-")[0];
   if (ROUTES.indexOf(h) < 0) { h = "home"; full = "home"; }
-  if (h === "map" && MAPST && document.getElementById("gmap")) { mapSelect(full); return; }
-  if (h !== "map") { if (MAPST) cancelAnimationFrame(MAPST.anim); MAPST = null; }
+  var fld = h === "map" && /^map-f(-|$)/.test(full) && !!window.WX_FIELD;
+  if (h === "map" && !fld && MAPST && document.getElementById("gmap")) { mapSelect(full); return; }
+  if (h !== "map" || fld) { if (MAPST) cancelAnimationFrame(MAPST.anim); MAPST = null; }
   [].forEach.call(document.querySelectorAll("#tabs a"), function (a) {
     if (a.getAttribute("href") === "#" + topRoute(h)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
@@ -142,6 +143,7 @@ function route() {
   view.className = "wrap" + (h === "home" ? " home" : "");
   if (h === "home") renderHome();
   else if (h === "inn") renderInn();
+  else if (fld) WX_FIELD.render(view, full.slice(6));
   else if (h === "map") renderMap(full);
   else if (h === "gm") { if (window.renderGM) renderGM(); else renderEmpty(); }
   else if (!hasData) renderEmpty();
@@ -648,6 +650,7 @@ function mapOverview() {
   return '<div class="lbl">전도 全圖</div><h2>중원과 세외</h2>' +
     '<div class="field"><label for="m-q">찾기</label><input id="m-q" type="search" placeholder="성·산·도시·문파 이름" autocomplete="off"></div><div id="m-res"></div>' +
     '<div class="mlist"><h3>묶음</h3><div class="chips">' + MAPD.themes.map(function (t) { return '<a class="chip" href="#map-t-' + t.id + '">' + esc(t.name) + "</a>"; }).join("") + "</div></div>" +
+    (window.WX_FIELD ? '<div class="mlinks"><a class="btn small" href="#map-f">전장도(戰場圖) — 전투 격자맵</a></div>' : "") +
     '<div class="mlist"><h3>문파 표식</h3><ul class="legend">' + groups + '<li><span class="seal-dot approx"></span>점선: 위치 미정</li><li><span class="zring-dot"></span>고리: 구역도가 있는 곳</li></ul></div>' +
     '<p class="hint">지역을 누르면 지도 위에 그 지역의 구역과 길이 그려지고, 구역을 누르면 이 칸에 설명이 열립니다. 문파나 명승을 누르면 지도 아래에 그곳의 구역도가 열립니다.</p>' +
     listBlock("한 점에 찍지 않는 세력", MAPD.roaming.map(function (r) { return "<b>" + esc(r.name) + '</b> <span class="hint">' + esc(r.where) + "</span>"; }));
@@ -1537,10 +1540,9 @@ function relRows(c) {
 
 /* ───────── 인물지: 초상 · 경험치 · 명부 · 무작위 생성 ───────── */
 function builderTabs(on) {
-  return '<nav class="subtabs" aria-label="인물지"><a href="#builder"' + (on === "make" ? ' aria-current="page"' : "") + '>만들기</a><a href="#builder-archive"' + (on === "archive" ? ' aria-current="page"' : "") + ">명부(名簿) — 플레이어별 PC</a>" + '<a href="#builder-sim"' + (on === "sim" ? ' aria-current="page"' : "") + ">전투 시뮬</a>" + (window.WX_FIELD ? '<a href="#builder-field"' + (on === "field" ? ' aria-current="page"' : "") + ">전장도(戰場圖)</a>" : "") + "</nav>";
+  return '<nav class="subtabs" aria-label="인물지"><a href="#builder"' + (on === "make" ? ' aria-current="page"' : "") + '>만들기</a><a href="#builder-archive"' + (on === "archive" ? ' aria-current="page"' : "") + ">명부(名簿) — 플레이어별 PC</a>" + '<a href="#builder-sim"' + (on === "sim" ? ' aria-current="page"' : "") + ">전투 시뮬</a></nav>";
 }
 function renderBuilderRoute(full) {
-  if (/^builder-field/.test(full || "") && window.WX_FIELD) { WX_FIELD.render(view); return; }
   if (/^builder-sim/.test(full || "")) { if (window.renderSim) window.renderSim(view); else view.innerHTML = viewHead("builder", "") + builderTabs("sim") + '<p class="hint">전투 시뮬을 불러오지 못했어요.</p>'; return; }
   var m = /^builder-archive(?:-(.+))?$/.exec(full || "");
   if (m) renderArchive(m[1] ? decodeURIComponent(m[1]) : ""); else renderBuilder();

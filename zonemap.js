@@ -178,7 +178,9 @@
       return esc(o.n) + ' <span class="hint">' + k + "</span>";
     });
     var ds = descOf(z), btn = "";
-    if (z.go) { var v = z.go.split(":"); btn = '<a class="btn small" href="#map-' + v[0] + "-" + v[1] + '">' + (v[0] === "p" ? "그 지역으로" : "구역도 들어가기") + "</a>"; }
+    var fs = window.WX_FIELD && !z.out ? WX_FIELD.setForZone(z.dg || z.t, z.n) || WX_FIELD.setForZone(z.t, z.n) : "";
+    if (fs) btn = '<a class="btn small" href="#map-f-' + fs + '">전장도 · ' + esc(WX_FIELD.setOf(fs).n) + "</a>";
+    if (z.go) { var v = z.go.split(":"); btn += '<a class="btn small" href="#map-' + v[0] + "-" + v[1] + '">' + (v[0] === "p" ? "그 지역으로" : "구역도 들어가기") + "</a>"; }
     return '<div class="zcard-in"><div class="lbl">구역 · ' + esc(m.name) + '</div><h4>' + esc(z.n) + (z.t ? ' <span class="zchip' + (z.home ? " home" : "") + '">' + esc(z.t) + "</span>" : "") + (z.dg ? ' <span class="zchip dg">던전 · ' + esc(z.dg) + "</span>" : "") + "</h4>" +
       (ds ? '<p class="zds">' + esc(ds) + "</p>" : "") + (z.e ? '<p class="zef"><b>효과</b> ' + esc(z.e) + "</p>" : "") +
       (con.length ? '<p class="zcn"><b>이어진 곳</b> ' + con.join(" · ") + "</p>" : "") + gmNote(mapId, zid) + (btn ? '<div class="mlinks">' + btn + "</div>" : "") + "</div>";
