@@ -1464,12 +1464,14 @@ function drawSheet(c) {
     '<div class="checks">' + ck.map(function (x) { return '<span class="' + (x[0] ? "good" : "bad") + '">' + (x[0] ? "✓ " : "· ") + esc(x[1]) + "</span>"; }).join("") + "</div>" +
     sheetBody(c) +
     '<div class="sheet-actions" id="s-pub">' + pubButtonsHtml(c) + "</div>" +
-    '<div class="sheet-actions"><button class="btn primary small" id="s-export" type="button"' + (MCP && !STANDALONE ? "" : " hidden") + '>구글 시트로 내보내기</button><button class="btn small" id="s-copy" type="button">텍스트로 복사</button><button class="btn small" id="s-json" type="button">캐릭터 코드 복사</button><button class="btn small" id="s-imp" type="button">코드 불러오기</button></div>' +
+    '<div class="sheet-actions"><button class="btn primary small" id="s-export" type="button"' + (MCP && !STANDALONE ? "" : " hidden") + '>구글 시트로 내보내기</button><button class="btn small" id="s-copy" type="button">텍스트로 복사</button><button class="btn small" id="s-ccf" type="button">코코포리아</button><button class="btn small" id="s-json" type="button">캐릭터 코드 복사</button><button class="btn small" id="s-imp" type="button">코드 불러오기</button></div>' +
     '<div class="io" id="s-io" hidden><textarea id="s-ta" aria-label="캐릭터 코드"></textarea><div class="sheet-actions"><button class="btn small primary" id="s-load" type="button">불러와서 새 캐릭터로</button><button class="btn small" id="s-cancel" type="button">닫기</button></div></div>' +
+    (window.WX_CCF ? WX_CCF.boxHtml() : "") +
     '<p class="hint" id="s-exst" hidden role="status"></p>' +
     '<textarea id="s-fallback" hidden readonly aria-label="복사할 텍스트"></textarea>';
   bindPub(c);
   $("#s-copy").onclick = function () { copyText(sheetText(c), $("#s-fallback")); };
+  if (window.WX_CCF) WX_CCF.bind(el, function () { return c; }); else $("#s-ccf").hidden = true;
   $("#s-export").onclick = function () { exportToSheet(c, this); };
   $("#s-json").onclick = function () { copyText(JSON.stringify(c), $("#s-fallback")); };
   $("#s-imp").onclick = function () { $("#s-io").hidden = false; $("#s-ta").value = ""; $("#s-ta").focus(); };
@@ -1690,7 +1692,7 @@ function renderArchive(sel) {
       detail = '<section class="arch-detail" id="arch-d"><div class="sheet">' + sheetHead(pc) + sheetBody(pc) +
         '<div class="sheet-actions"><button class="btn small primary" type="button" id="ar-take">' + (own ? "인물지로 불러와 고치기" : "내 인물지로 사본 가져오기") + "</button>" +
         (own ? '<label class="lbl" for="ar-st">상태</label><select id="ar-st">' + STATUSES.map(function (v) { return "<option" + (v === pc.status ? " selected" : "") + ">" + v + "</option>"; }).join("") + '</select><button class="btn small danger" type="button" id="ar-del">명부에서 내리기</button>' : "") +
-        '<a class="btn small" href="#builder-archive">목록으로</a></div><p class="hint">' + esc(doc.player || "") + " · 올린 때 " + esc(fmtDate(pc.at)) + "</p></div></section>";
+        '<button class="btn small" type="button" id="ar-ccf">코코포리아 말 복사</button>' + '<a class="btn small" href="#builder-archive">목록으로</a></div><p class="hint">' + esc(doc.player || "") + " · 올린 때 " + esc(fmtDate(pc.at)) + "</p></div></section>";
     } else if (pcsState !== "loading") detail = '<p class="hint">그 PC를 찾지 못했어요. 명부에서 내려갔을 수 있어요.</p>';
   }
   var docs = PCS.slice().sort(function (a, b) { return (b.id === MY_ID) - (a.id === MY_ID) || String(a.player || "").localeCompare(String(b.player || "")); });
@@ -1724,6 +1726,7 @@ function renderArchive(sel) {
     chars.forEach(function (x) { if (x.id === p[1]) x.status = st.value; }); store("wx-chars", chars);
     writeMine(list).then(function () { toast("상태를 바꿨어요"); }, function (er) { toast(pubErr(er)); });
   };
+  var cf = $("#ar-ccf"); if (cf) cf.onclick = function () { var p = ARCH_SEL.split("~"), doc = PCS.filter(function (d) { return d.id === p[0]; })[0], pc = doc && (doc.chars || []).filter(function (x) { return x.id === p[1]; })[0]; if (pc && window.WX_CCF) WX_CCF.copyPiece(pc); };
   var dl = $("#ar-del"); if (dl) dl.onclick = function () { dl.disabled = true; unpublishChar(ARCH_SEL.split("~")[1]).then(function () { location.hash = "builder-archive"; }); };
 }
 

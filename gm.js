@@ -311,7 +311,7 @@
       '<div class="gm-sheet"><div class="gm-sheet-h"><span class="lbl">무공 시트 (무인·두목)</span>' +
       (N ? '<button type="button" class="btn small" data-act="npc-roll" data-id="' + e(n.id) + '">주사위로 만들기</button>' : "") +
       '<button type="button" class="btn small" data-act="npc-paste" data-id="' + e(n.id) + '">인물지 코드 붙여넣기</button>' +
-      (sh && N ? '<button type="button" class="btn small" data-act="npc-open" data-id="' + e(n.id) + '">인물지에서 고치기</button><button type="button" class="btn small gm-del" data-act="npc-unsheet" data-id="' + e(n.id) + '">시트 지우기</button>' : "") + "</div>" +
+      (sh && N ? '<button type="button" class="btn small" data-act="npc-open" data-id="' + e(n.id) + '">인물지에서 고치기</button><button type="button" class="btn small" data-act="npc-ccf" data-id="' + e(n.id) + '">코코포리아 말 복사</button><button type="button" class="btn small gm-del" data-act="npc-unsheet" data-id="' + e(n.id) + '">시트 지우기</button>' : "") + "</div>" +
       '<div class="io" data-paste="' + e(n.id) + '" hidden><textarea aria-label="인물지 캐릭터 코드" placeholder="인물지에서 \'캐릭터 코드 복사\'로 복사한 코드를 붙여넣으세요"></textarea><div><button type="button" class="btn small primary" data-act="npc-paste-ok" data-id="' + e(n.id) + '">넣기</button></div></div>' +
       (sh && N ? '<div class="sheet gm-npc-sheet">' + N.head(sh) + N.body(sh) + "</div>" : '<p class="hint">인물지와 같은 시트를 붙일 수 있어요. 경지·소속에 맞춰 주사위로 만들거나, 인물지에서 만든 캐릭터 코드를 붙여넣으세요. 고친 뒤에는 저장을 누르세요.</p>') + "</div>" +
       '<div class="gm-actions"><button type="submit" class="btn small">저장</button>' + (m ? '<a class="btn small" href="' + mapHref(m) + '">강호도에서 보기</a>' : "") +
@@ -370,6 +370,7 @@
       return;
     }
     if (act === "npc-unsheet") { setSheet(b.dataset.id, null); return; }
+    if (act === "npc-ccf") { var n4 = npcById(b.dataset.id), c4 = n4 && sheetOf(n4); if (c4 && window.WX_CCF) { c4 = JSON.parse(JSON.stringify(c4)); if (!c4.name) c4.name = n4.n || ""; WX_CCF.copyPiece(c4); } return; }
     if (act === "npc-open") { var n3 = npcById(b.dataset.id), c3 = n3 && sheetOf(n3); if (c3 && window.WX_NPC) WX_NPC.toBuilder(c3); return; }
     if (act === "npc-del") {
       var id = b.dataset.id;
