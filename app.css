@@ -734,3 +734,19 @@ details.lore-d[open] > summary::before { content: "－ "; }
 #wx-login button.in { border-color: var(--jade); color: var(--jade); }
 #wx-login .imp { cursor: pointer; color: var(--jade); text-decoration: underline; }
 .ccf-box ul { margin: 6px 0; padding-left: 18px; } .ccf-box p { margin: 6px 0; }
+/* 전장도 */
+.fld { display: grid; grid-template-columns: minmax(200px, 280px) 1fr; gap: 24px; align-items: start; }
+.fld-side h3, .fld-main h3 { margin: 14px 0 6px; font-size: 1rem; }
+.fld-side button.chip, .fld-brush button.chip { cursor: pointer; font: inherit; }
+.fld-side .chip.on, .fld-brush .chip.on { background: var(--jade); color: #fff; border-color: var(--jade); }
+.fld-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.fld-my { display: inline-flex; gap: 2px; }
+.fld-title { display: flex; gap: 12px; align-items: center; margin-bottom: 8px; }
+.fld-title input[type="text"], .fld-title #fld-name { flex: 1; min-width: 0; font: inherit; font-size: 1.1rem; padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper-2); color: var(--ink); }
+.fld-brush { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.fld-board { max-width: 600px; }
+.fld-board svg { width: 100%; height: auto; display: block; border-radius: 6px; }
+.fld-legend dt { font-weight: 700; margin-top: 6px; }
+.fld-legend dd { margin: 0; color: var(--ink-soft); }
+.fld .bad { color: var(--warn); }
+@media (max-width: 760px) { .fld { grid-template-columns: 1fr; } }

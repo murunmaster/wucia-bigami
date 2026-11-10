@@ -1537,9 +1537,10 @@ function relRows(c) {
 
 /* ───────── 인물지: 초상 · 경험치 · 명부 · 무작위 생성 ───────── */
 function builderTabs(on) {
-  return '<nav class="subtabs" aria-label="인물지"><a href="#builder"' + (on === "make" ? ' aria-current="page"' : "") + '>만들기</a><a href="#builder-archive"' + (on === "archive" ? ' aria-current="page"' : "") + ">명부(名簿) — 플레이어별 PC</a>" + '<a href="#builder-sim"' + (on === "sim" ? ' aria-current="page"' : "") + ">전투 시뮬</a></nav>";
+  return '<nav class="subtabs" aria-label="인물지"><a href="#builder"' + (on === "make" ? ' aria-current="page"' : "") + '>만들기</a><a href="#builder-archive"' + (on === "archive" ? ' aria-current="page"' : "") + ">명부(名簿) — 플레이어별 PC</a>" + '<a href="#builder-sim"' + (on === "sim" ? ' aria-current="page"' : "") + ">전투 시뮬</a>" + (window.WX_FIELD ? '<a href="#builder-field"' + (on === "field" ? ' aria-current="page"' : "") + ">전장도(戰場圖)</a>" : "") + "</nav>";
 }
 function renderBuilderRoute(full) {
+  if (/^builder-field/.test(full || "") && window.WX_FIELD) { WX_FIELD.render(view); return; }
   if (/^builder-sim/.test(full || "")) { if (window.renderSim) window.renderSim(view); else view.innerHTML = viewHead("builder", "") + builderTabs("sim") + '<p class="hint">전투 시뮬을 불러오지 못했어요.</p>'; return; }
   var m = /^builder-archive(?:-(.+))?$/.exec(full || "");
   if (m) renderArchive(m[1] ? decodeURIComponent(m[1]) : ""); else renderBuilder();
