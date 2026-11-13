@@ -60,7 +60,10 @@
     if (DB || !db || !key) return; DB = db; KEY = key; COL_G = "gmg-" + key; COL_N = "gmn-" + key;
     var t = setTimeout(function () { if (!GM.giboReady) { GM.err = "자료를 아직 불러오지 못했어요. 연결이 느릴 수 있어요."; redraw(); } }, 10000);
     db.collection(COL_G).onSnapshot(function (s) {
-      GM.gibo = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
+      var all = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
+      function isDg(d) { return d.kind === "dungeon" || /^dg-/.test(d.id); }   /* 던전메이커가 같은 저장소에 두는 문서 */
+      GM.dg = all.filter(isDg);
+      GM.gibo = all.filter(function (d) { return !isDg(d); }).sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
       if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; migrateGiboD(); }
       redraw();
     }, function (err) { clearTimeout(t); GM.err = "기보 자료를 읽지 못했어요 (" + (err && err.code || "오류") + ")."; redraw(); });
@@ -159,6 +162,7 @@
     body.addEventListener("input", function (ev) { var f = ev.target.closest("[data-gf]"); if (f) { GM.f[f.dataset.gf] = f.value; drawList(); } });
     body.addEventListener("change", function (ev) {
       var t = ev.target;
+      if (GM.tab === "dungeon" && window.WX_DG && WX_DG.onChange(ev)) return;
       if (t.matches("[data-gf]")) { GM.f[t.dataset.gf] = t.value; drawList(); }
       if (t.matches("select[data-ed='map']")) { var form = t.closest("form"); var zs = q("select[data-ed='zone']", form); zs.innerHTML = zoneOpts(t.value, ""); }
     });
@@ -181,7 +185,7 @@
     var msg = GM.err ? '<p class="hint gm-err">' + e(GM.err) + "</p>" : !GM.giboReady && !GM.gibo.length ? '<p class="hint">불러오는 중…</p>' : "";
     if (GM.tab === "gibo") body.innerHTML = msg + giboFilters() + '<div id="gm-list"></div>';
     else if (GM.tab === "npc") body.innerHTML = msg + '<div class="gm-bar"><div class="field"><label for="gm-nq">찾기</label><input id="gm-nq" type="search" data-gf="nq" value="' + e(GM.f.nq || "") + '" placeholder="이름·소속·역할"></div><button type="button" class="btn small" data-act="npc-add">NPC 추가</button></div><div id="gm-list"></div>';
-    else body.innerHTML = msg + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.</p><div id="gm-list"></div>';
+    else body.innerHTML = msg + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.' + (window.WX_DG ? " '던전 짜기'를 누르면 층과 구역을 짜고 고칩니다. 고친 뒤에는 꼭 '저장'을 누르세요." : "") + '</p><div id="gm-list"></div>';
     drawList();
   }
 
@@ -327,7 +331,9 @@
     var s2 = q(".gm-saved", document.querySelector('form.gm-ed[data-id="' + id + '"]')); if (s2) s2.textContent = "시트를 바꿨어요. 저장을 누르세요.";
   }
 
+  function dgCtx() { return { db: DB, col: COL_G, gm: GM, maps: maps, mapHref: mapHref, redraw: drawList }; }
   function dungeonList() {
+    if (window.WX_DG) return WX_DG.html(dgCtx());
     var out = [];
     maps().forEach(function (m) { m.zones.forEach(function (z) {
       if (!z.dg) return;
@@ -344,6 +350,7 @@
 
   var confirmDel = "";
   function onClick(ev) {
+    if (GM.tab === "dungeon" && window.WX_DG && WX_DG.onClick(ev)) return;
     var b = ev.target.closest("[data-act]"); if (!b) return;
     var act = b.dataset.act;
     if (act === "open") { GM.open = GM.open === b.dataset.id ? "" : b.dataset.id; confirmDel = ""; GM.saved = ""; drawList(); return; }

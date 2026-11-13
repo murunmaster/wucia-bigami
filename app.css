@@ -750,3 +750,22 @@ details.lore-d[open] > summary::before { content: "－ "; }
 .fld-legend dd { margin: 0; color: var(--ink-soft); }
 .fld .bad { color: var(--warn); }
 @media (max-width: 760px) { .fld { grid-template-columns: 1fr; } }
+/* 던전메이커 */
+.gm-dgs.dg-list .gm-dg.open { grid-column: 1 / -1; }
+.dg-ed { display: grid; gap: 10px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.dg-ed .field label { display: grid; gap: 3px; font-size: .85rem; }
+.dg-ed .field.wide { width: 100%; }
+.dg-ed textarea { width: 100%; font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); color: var(--ink); }
+.dg-ed textarea.dg-code { font-family: ui-monospace, monospace; letter-spacing: .25em; width: 12em; }
+.dg-ed h4 { margin: 10px 0 4px; }
+.dg-cols { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.dg-map { width: 100%; height: auto; display: block; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; }
+.dg-node { cursor: pointer; }
+.dg-node:focus-visible rect { stroke: var(--jade); }
+.dg-links { display: grid; gap: 4px; }
+.dg-link { display: flex; gap: 4px; flex-wrap: wrap; }
+.dg-zone { display: grid; gap: 8px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--paper); }
+.dg-thumb { max-width: 260px; }
+.dg-thumb svg { width: 100%; height: auto; display: block; border-radius: 4px; }
+.dg-floors { margin: 2px 0; }
+@media (max-width: 860px) { .dg-cols { grid-template-columns: 1fr; } }
