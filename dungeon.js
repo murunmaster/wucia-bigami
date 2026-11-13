@@ -44,6 +44,7 @@
       { id: "i", n: "최심부", k: "보스", end: 1, at: [0, 1], f: "cave", m: ["A.#..B", "A..!.B", "..vv..", "A.vv.B", "A.!..B", "..#w.B"], e: "최종 보스. 천지의 잔영(殘影). 그 뒤에 혜명이 벽을 보고 앉아 있다. 심마의 벽에서 성공한 PC 수만큼 전투 중 판정 1번을 다시 굴린다(혜명의 일갈). 쓰러뜨리면 혜명이 '진의 모양'을 말해 주고, 좌대 뒤 석순에서 공청석유를 얻는다. 날목: 물길로 탑림까지.", foes: "천지의 잔영(이물·괴력난신): 생명력 PC 수 × 3, 목표치 6, 공력 1d6. 「혈전의 창날」 공격·간격 2·코스트 2·접근전 2점. 「수확」 공격·간격 3·코스트 3·간격 안 원하는 전원 사격전 1점, 맞힌 대상마다 생명력 1 회복, 전투당 2번. 「얼음 밑 그림자」 라운드 끝에 빈 칸 하나가 위험지(4칸까지). 그림자 병졸(졸개, 목표치 7) × PC 수." }],
       links: [["f", "g", "road"], ["g", "h", "road"], ["h", "i", "road"]] }] } };
 
+  if (window.WX_DG_SEED) Object.keys(WX_DG_SEED).forEach(function (k) { if (!SEED[k]) SEED[k] = WX_DG_SEED[k]; });
   var ST = { open: "", ed: null, cu: null, fl: 0, z: "", dirty: false, msg: "", del: false, seq: 0, add: null, addMsg: "" };
   var INJ = [];   /* 구역도에 얹어 둔 것: 되돌릴 때 쓴다 */
   var CTX = null;
