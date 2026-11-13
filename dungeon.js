@@ -32,7 +32,7 @@
   var SEED = { "sungsan~dm": { kind: "동굴", dir: "내려감", mist: "1d4+1", floors: [
     { n: "면벽굴", shape: "갈림", zones: [
       { id: "a", n: "굴 어귀", k: "관문", "in": 1, at: [0, 0], f: "cave", e: "계율원 무승 둘이 막는다. 《화술》이나 《기만》 판정에 성공하면 비킨다(소림 PC는 유리점 1). 힘으로 뚫으면 전투. 싸우면 나한 통로의 순찰조가 기습을 당하지 않는다. 탑림 암도로 오면 이 구역을 거치지 않고 무너진 샛굴로 들어온다.", foes: "졸개 무승 × PC 수" },
-      { id: "b", n: "면벽 석실", k: "조사", at: [1, 0], e: "달마가 마주 앉았다는 벽. 새 손자국이 있다. 《법력》이나 《무공학》 성공: 혜명이 아래로 내려갔다는 것을 안다. 성공한 PC는 심마의 벽 판정에 유리점 1." },
+      { id: "b", n: "면벽 석실", k: "조사", at: [1, 0], e: "달마가 마주 앉았다는 벽. 새 손자국이 있다. 《법력》이나 《무공학》 성공: 혜명이 아래로 내려갔다는 것을 안다. 성공한 PC는 심마의 벽 판정에 유리점 1. 이 석실에서는 야영할 수 있다." },
       { id: "c", n: "무너진 샛굴", k: "함정", at: [1, 1], e: "천장이 내려앉는다. 길잡이가 《간파》나 《경공》으로 판정. 실패하면 일행 전원이 상태이상표를 1번 굴린다." },
       { id: "d", n: "나한 통로", k: "전투", at: [2, 0], f: "cave", e: "계율원 순찰조. 벽감마다 나한상이 서 있다. 쉬운 전투.", foes: "졸개 무승 × PC 수, 무인 1(이류)" },
       { id: "e", n: "내림 틈", k: "보스", down: 1, at: [3, 0], f: "cave", m: ["A..#.B", "A....B", "A.c.B_", "A.c.B_", "A....B", "A..#.B"], e: "중간 보스. 계율원 집사승 법계(法戒). 원각의 명으로 굴을 막고 있으나 진상은 모른다. 방장 범허의 이름을 걸고 《화술》(불리점 1)에 성공하거나 면벽 석실에서 알아낸 것을 들이대면 비킨다(위기 해결 1점). 틈이 낭떠러지다.", foes: "법계(일류 두목), 졸개 무승 × PC 수" }],
@@ -44,7 +44,8 @@
       { id: "i", n: "최심부", k: "보스", end: 1, at: [0, 1], f: "cave", m: ["A.#..B", "A..!.B", "..vv..", "A.vv.B", "A.!..B", "..#w.B"], e: "최종 보스. 천지의 잔영(殘影). 그 뒤에 혜명이 벽을 보고 앉아 있다. 심마의 벽에서 성공한 PC 수만큼 전투 중 판정 1번을 다시 굴린다(혜명의 일갈). 쓰러뜨리면 혜명이 '진의 모양'을 말해 주고, 좌대 뒤 석순에서 공청석유를 얻는다. 날목: 물길로 탑림까지.", foes: "천지의 잔영(이물·괴력난신): 생명력 PC 수 × 3, 목표치 6, 공력 1d6. 「혈전의 창날」 공격·간격 2·코스트 2·접근전 2점. 「수확」 공격·간격 3·코스트 3·간격 안 원하는 전원 사격전 1점, 맞힌 대상마다 생명력 1 회복, 전투당 2번. 「얼음 밑 그림자」 라운드 끝에 빈 칸 하나가 위험지(4칸까지). 그림자 병졸(졸개, 목표치 7) × PC 수." }],
       links: [["f", "g", "road"], ["g", "h", "road"], ["h", "i", "road"]] }] } };
 
-  var ST = { open: "", ed: null, fl: 0, z: "", dirty: false, msg: "", del: false, seq: 0 };
+  var ST = { open: "", ed: null, cu: null, fl: 0, z: "", dirty: false, msg: "", del: false, seq: 0, add: null, addMsg: "" };
+  var INJ = [];   /* 구역도에 얹어 둔 것: 되돌릴 때 쓴다 */
   var CTX = null;
   function F() { return window.WX_FIELD; }
   function e(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -55,6 +56,39 @@
   function docId(key) { return "dg-" + key.replace("~", "-"); }
   function stored(key) { var d = (CTX.gm.dg || []).filter(function (x) { return x.id === docId(key); })[0]; if (!d) return null; try { return JSON.parse(d.j); } catch (x) { return null; } }
   function zoneOf(key) { var p = key.split("~"), m = CTX.maps().filter(function (x) { return x.id === p[0]; })[0]; return { m: m, z: m && m.zones.filter(function (x) { return x.id === p[1]; })[0] }; }
+  function cuOf(doc) { if (!doc || !doc.cu) return null; try { return JSON.parse(doc.cu); } catch (x) { return null; } }
+  function docOf(key) { return (CTX.gm.dg || []).filter(function (x) { return x.id === docId(key); })[0]; }
+  function freeAt(m, to) {
+    var used = {}, t = m.zones.filter(function (z) { return z.id === to; })[0], my = 0, i;
+    m.zones.forEach(function (z) { used[z.at.join()] = 1; my = Math.max(my, z.at[1]); });
+    var d = [[1, 0], [0, 1], [-1, 0], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]];
+    if (t) for (i = 0; i < d.length; i++) { var x = t.at[0] + d[i][0], y = t.at[1] + d[i][1]; if (x >= 0 && y >= 0 && !used[x + "," + y]) return [x, y]; }
+    return [0, my + 1];
+  }
+  /* GM이 직접 추가한 던전을 구역도 자료에 얹는다(GM 화면에서만). 문서가 바뀔 때마다 걷어 내고 다시 얹는다 */
+  function sync(ctx) {
+    CTX = ctx || CTX; if (!CTX) return;
+    var ZG = window.ZONE_GEO;
+    INJ.forEach(function (j) {
+      if (j.added) { j.m.zones = j.m.zones.filter(function (z) { return z.id !== j.zid; }); j.m.links = j.m.links.filter(function (l) { return !l.gmdg || (l[0] !== j.zid && l[1] !== j.zid); }); if (ZG && ZG.at[j.m.id]) delete ZG.at[j.m.id][j.zid]; }
+      else { var z0 = j.m.zones.filter(function (z) { return z.id === j.zid; })[0]; if (z0) { delete z0.dg; delete z0.gmdg; } }
+    });
+    INJ = [];
+    (CTX.gm.dg || []).forEach(function (doc) {
+      var cu = cuOf(doc); if (!cu) return;
+      var m = CTX.maps().filter(function (x) { return x.id === doc.map; })[0]; if (!m) return;
+      var z = m.zones.filter(function (x) { return x.id === doc.zone; })[0];
+      if (z) { if (z.dg) return; z.dg = cu.kind || "동굴"; z.gmdg = 1; INJ.push({ m: m, zid: z.id }); return; }
+      if (!cu.nz) return;
+      var links = (cu.nz.links || []).filter(function (l) { return m.zones.some(function (o) { return o.id === l[0]; }); });
+      var nz = { id: doc.zone, n: cu.nz.n || "새 던전", t: cu.nz.t || cu.kind, e: cu.nz.e || "", dg: cu.kind || "동굴", gmdg: 1, at: freeAt(m, links[0] && links[0][0]) };
+      m.zones.push(nz);
+      links.forEach(function (l) { var a = [l[0], nz.id, l[1] || "road"]; a.gmdg = 1; m.links.push(a); });
+      var G = ZG && ZG.at[m.id], g0 = G && links[0] && G[links[0][0]];
+      if (g0) { var off = [[0.7, -0.5], [-0.7, -0.5], [0.7, 0.5], [-0.7, 0.5], [0, -0.9], [0, 0.9]], k = 0, p; do { p = [g0[0] + off[k][0], g0[1] + off[k][1]]; k++; } while (k < off.length && Object.keys(G).some(function (id) { return Math.abs(G[id][0] - p[0]) < 0.45 && Math.abs(G[id][1] - p[1]) < 0.3; })); G[nz.id] = p; }
+      INJ.push({ m: m, zid: nz.id, added: 1 });
+    });
+  }
   function setFor(kind, name) { return (F() && (F().setForZone(kind, name) || "")) || ""; }
 
   /* ── 층 깔기: 모양과 구역 수 → 자리와 길 ── */
@@ -92,7 +126,7 @@
   /* 층 하나를 새로 만든다. last = 마지막 층(끝방), mid = 중간 보스가 내림목을 지킨다, fi = 몇 번째 층 */
   function makeFloor(shape, n, opt) {
     var L = layout(shape, n), pool = (NAMES_K[opt.kind] || NAMES[opt.set] || []).slice(), ids = [], zones = [], i;
-    var bag = ["전투"]; if (n >= 5) bag.push("함정"); bag.push("조사"); if (opt.fi > 0 && n >= 4) bag.push("쉼터"); if (n >= 6) bag.push("관문");
+    var bag = ["전투"]; if (n >= 5) bag.push("함정"); bag.push("조사"); if (n >= 4) bag.push("쉼터"); if (n >= 6) bag.push("관문");
     while (bag.length < n) bag.push(Math.random() < .5 ? "전투" : "빈 곳");
     bag = shuffle(bag.slice(0, n));
     for (i = 0; i < n; i++) ids.push(zid());
@@ -127,7 +161,7 @@
     fl.zones.forEach(function (z) {
       var p = P[z.id], on = z.id === sel, mark = z["in"] ? "들머리" : z.down ? "내림목" : z.end ? "끝방" : "";
       o += '<g class="dg-node" data-dgz="' + e(z.id) + '" tabindex="0" role="button" aria-label="' + e(z.n + " " + z.k) + '"><rect x="' + (p[0] - 62) + '" y="' + (p[1] - 30) + '" width="124" height="60" rx="8" fill="#f4eede" stroke="' + (on ? "#1a1a1a" : KCOL[z.k] || "#888") + '" stroke-width="' + (on ? 5 : 3) + '"/>' +
-        '<rect x="' + (p[0] - 62) + '" y="' + (p[1] - 30) + '" width="124" height="18" rx="8" fill="' + (KCOL[z.k] || "#888") + '"/><text x="' + p[0] + '" y="' + (p[1] - 17) + '" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">' + e(z.k + (mark ? " · " + mark : "")) + "</text>" +
+        '<rect x="' + (p[0] - 62) + '" y="' + (p[1] - 30) + '" width="124" height="18" rx="8" fill="' + (KCOL[z.k] || "#888") + '"/><text x="' + p[0] + '" y="' + (p[1] - 17) + '" text-anchor="middle" font-size="12" fill="#fff" font-weight="700">' + e((z.k === "보스" ? (z.bt || (z.end ? "최종" : "중간")) + " 보스" : z.k) + (mark ? " · " + mark : "")) + "</text>" +
         '<text x="' + p[0] + '" y="' + (p[1] + 12) + '" text-anchor="middle" font-size="14" fill="#1a1a1a">' + e(z.n.length > 9 ? z.n.slice(0, 8) + "…" : z.n) + "</text></g>";
     });
     return '<svg class="dg-map" viewBox="0 0 ' + W + " " + H + '" style="max-width:' + Math.max(W, 300) + 'px" font-family="sans-serif"><defs><marker id="dgarr" viewBox="0 0 10 10" refX="22" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M0 0L10 5L0 10z" fill="#5a5346"/></marker></defs>' + o + "</svg>";
@@ -145,7 +179,7 @@
       fld("방향", '<select data-dgf="d.dir">' + opts(DIRS, d.dir) + "</select>") +
       fld("마기 한계", '<select data-dgf="d.mist">' + opts(["1d4+1", "1d4", "1d4+2"], d.mist) + "</select>") +
       '<button type="button" class="btn small" data-dg="auto">통째로 새로 짜기</button><button type="button" class="btn small primary" data-dg="save">저장</button><button type="button" class="btn small" data-dg="md">문서로 복사</button>' +
-      (stored(key) ? '<button type="button" class="btn small danger" data-dg="del">' + (ST.del ? "한 번 더 누르면 지움" : "저장한 것 지우기") + "</button>" : "") +
+      (stored(key) ? '<button type="button" class="btn small danger" data-dg="del">' + (ST.del ? "한 번 더 누르면 지움" : ST.cu ? "이 던전 없애기" : "저장한 것 지우기") + "</button>" : "") +
       '<span class="gm-saved" role="status">' + e(ST.msg || (ST.dirty ? "저장하지 않은 변경이 있어요" : "")) + "</span></div>" +
       '<nav class="subtabs dg-floors" aria-label="층">' + d.floors.map(function (x, i) { return '<a href="#gm" data-dg="floor:' + i + '"' + (i === ST.fl ? ' aria-current="page"' : "") + ">" + (i + 1) + "층 " + e(x.n) + "</a>"; }).join("") + '<a href="#gm" data-dg="addfloor">+ 층 추가</a></nav>';
     if (!fl) return h + '<p class="hint">아직 층이 없어요. \'통째로 새로 짜기\'나 \'층 추가\'를 누르세요.</p></div>';
@@ -153,6 +187,7 @@
       fld("구역 수", '<input type="number" min="2" max="9" id="dg-n" value="' + fl.zones.length + '" style="width:4.5em">') +
       fld("이 층 마기 한계", '<select data-dgf="f.mist">' + opts(["", "1d4+1", "1d4", "1d4+2"], fl.mist || "", ["던전과 같음", "1d4+1", "1d4", "1d4+2"]) + "</select>") +
       '<button type="button" class="btn small" data-dg="relay">이 모양으로 다시 깔기</button><button type="button" class="btn small danger" data-dg="delfloor">층 지우기</button></div>' +
+      '<p class="hint dg-boss">이 층의 보스: ' + (fl.zones.filter(function (o) { return o.k === "보스"; }).map(function (o) { var np = o.npc && CTX.gm.npc.filter(function (n) { return n.id === o.npc; })[0]; return e(o.n + " — " + (o.bt || (o.end ? "최종" : "중간")) + (np ? " · " + np.n : "")); }).join(" / ") || "없음") + ". 어느 구역이든 눌러서 '이 구역에 보스 두기'를 누르거나 내용을 '보스'로 바꾸면 됩니다. 한 층에 여럿 둘 수 있어요.</p>" +
       '<p class="hint">\'다시 깔기\'는 이 층의 구역과 길을 새로 만듭니다(적어 둔 내용은 사라져요). 구역을 눌러 고르세요.</p>' +
       '<div class="dg-cols"><div>' + floorSvg(fl, ST.z) + '<div class="sheet-actions"><button type="button" class="btn small" data-dg="addzone">구역 추가</button></div>' +
       '<h4>길</h4><div class="dg-links">' + fl.links.map(function (l, i) {
@@ -167,6 +202,10 @@
         fld("표지", '<select data-dgf="z.mark">' + opts(["", "in", "down", "end"], mark, ["없음", "들머리", "내림목", "끝방"]) + "</select>") +
         fld("열", '<input type="number" min="0" max="8" data-dgf="z.x" value="' + z.at[0] + '" style="width:4em">') + fld("행", '<input type="number" min="0" max="8" data-dgf="z.y" value="' + z.at[1] + '" style="width:4em">') + "</div>" +
         fld("일어나는 일(설명·판정)", '<textarea data-dgf="z.e" rows="4">' + e(z.e || "") + "</textarea>", "wide") +
+        (z.k === "보스" ? '<div class="gm-bar">' + fld("보스 등급", '<select data-dgf="z.bt">' + opts(["중간", "최종"], z.bt || (z.end ? "최종" : "중간"), ["중간 보스", "최종 보스"]) + "</select>") +
+          fld("서고 NPC", '<select data-dgf="z.npc"><option value="">고르지 않음</option>' + CTX.gm.npc.map(function (n) { return '<option value="' + e(n.id) + '"' + (n.id === z.npc ? " selected" : "") + ">" + e(n.n + (n.lv ? " · " + n.lv : "") + (n.grade ? " " + n.grade : "")) + "</option>"; }).join("") + "</select>") + "</div>" +
+          '<p class="hint">서고 NPC를 고르면 그 NPC가 이 구역의 보스입니다. 시트와 오의는 NPC 탭에서 봅니다. NPC가 아닌 보스(이물 등)는 아래 에너미 칸에 적으세요.</p>'
+          : '<div class="sheet-actions"><button type="button" class="btn small" data-dg="boss">이 구역에 보스 두기</button></div>') +
         (fight ? fld("에너미", '<textarea data-dgf="z.foes" rows="3">' + e(z.foes || "") + "</textarea>", "wide") : "") +
         (fight && f ? '<div class="gm-bar">' + fld("전장도 묶음", '<select data-dgf="z.f">' + opts([""].concat(f.sets.map(function (s) { return s.id; })), z.f || "", ["정하지 않음"].concat(f.sets.map(function (s) { return s.n; }))) + "</select>") +
           (set && set.id === z.f ? fld("묶음의 맵", '<select data-dgf="z.pick">' + opts(["", "0", "1", "2"].slice(0, set.maps.length + 1), "", ["골라서 넣기"].concat(set.maps.map(function (m) { return m.n; }))) + "</select>") + '<button type="button" class="btn small" data-dg="genmap">무작위 맵</button>' : "") +
@@ -176,16 +215,23 @@
           '<p class="hint">맵을 칸 단위로 고치려면 <a href="#map-f' + (z.f ? "-" + e(z.f) : "") + '">전장도</a>에서 고친 뒤 \'맵 코드 복사\'로 가져와 붙여 넣으세요(저장을 먼저 하세요).</p>' : "") +
         '<div class="sheet-actions"><button type="button" class="btn small danger" data-dg="delzone">이 구역 지우기</button></div></div>';
     }
+    if (ST.cu && ST.cu.nz) {
+      var lk = (ST.cu.nz.links && ST.cu.nz.links[0]) || ["", "road"], others = zi.m.zones.filter(function (o) { return !o.out && o.id !== zi.z.id; });
+      h += '<div class="dg-place"><h4>이 던전의 자리(직접 만든 구역)</h4><div class="gm-bar">' + fld("구역 이름", '<input data-dgf="c.n" value="' + e(ST.cu.nz.n || "") + '">') + fld("성격", '<input data-dgf="c.t" value="' + e(ST.cu.nz.t || "") + '" size="8">') +
+        fld("이을 구역", '<select data-dgf="c.to">' + opts(others.map(function (o) { return o.id; }), lk[0], others.map(function (o) { return o.n; })) + "</select>") +
+        fld("길", '<select data-dgf="c.lt">' + opts(Object.keys(LINKS), lk[1], Object.keys(LINKS).map(function (k) { return LINKS[k]; })) + "</select>") + "</div>" +
+        fld("구역 설명", '<textarea data-dgf="c.e" rows="2">' + e(ST.cu.nz.e || "") + "</textarea>", "wide") + '<p class="hint">' + e(zi.m.name) + " 구역도에 얹힙니다. 저장하면 강호도에 반영돼요(GM에게만 보입니다).</p></div>";
+    }
     var loot = CTX.gm.gibo.filter(function (r) { return zi.m && r.map === zi.m.id && r.zone === zi.z.id; }).map(function (r) { return r.n; });
-    return h + "</div>" + '<p class="hint">보상(기보 탭에서 이 던전에 둔 것): ' + (loot.length ? e(loot.join(" · ")) : "아직 없음") + ". 전투 크기: 보스 없는 구역은 쉬운(PC 경지 단계 합의 절반), 중간 보스는 보통, 최종 보스는 어려운(1.5배).</p></div>";
+    return h + "</div>" + '<p class="hint">보상(기보 탭에서 이 던전에 둔 것): ' + (loot.length ? e(loot.join(" · ")) : "아직 없음") + ". 던전 안에서는 처음 가는 구역으로 옮길 때마다 일행 전원에게 마기 1이 쌓입니다. 전투 크기: 보스 없는 구역은 쉬운(PC 경지 단계 합의 절반), 중간 보스는 보통, 최종 보스는 어려운(1.5배).</p></div>";
   }
   function html(ctx) {
-    CTX = ctx; var out = [];
+    CTX = ctx; sync(ctx); var out = [];
     ctx.maps().forEach(function (m) { m.zones.forEach(function (z) {
       if (!z.dg) return;
       var key = m.id + "~" + z.id, sd = stored(key), seed = SEED[key], open = ST.open === key;
       var items = ctx.gm.gibo.filter(function (r) { return r.map === m.id && r.zone === z.id; }), npcs = ctx.gm.npc.filter(function (n) { return n.map === m.id && n.zone === z.id; });
-      out.push('<article class="gm-dg' + (open ? " open" : "") + '"><div><b>' + e(z.n) + '</b> <span class="gm-meta">' + e(m.name) + " · " + e(z.dg) + "</span></div>" +
+      out.push('<article class="gm-dg' + (open ? " open" : "") + '"><div><b>' + e(z.n) + '</b> <span class="gm-meta">' + e(m.name) + " · " + e(z.dg) + (z.gmdg ? " · 직접 추가" : "") + "</span></div>" +
         '<p class="hint">' + e(z.e || "") + "</p>" +
         '<p><span class="lbl">짜임</span> ' + (sd ? e(summary(sd)) : seed ? e(summary(seed)) + ' <span class="hint">(기본 제공)</span>' : '<span class="hint">아직 안 짬</span>') + "</p>" +
         '<p><span class="lbl">보상</span> ' + (items.length ? items.map(function (r) { return e(r.n); }).join(" · ") : '<span class="hint">아직 없음</span>') + "</p>" +
@@ -193,7 +239,28 @@
         '<div class="sheet-actions"><button type="button" class="btn small' + (open ? " primary" : "") + '" data-dg="open:' + e(key) + '">' + (open ? "닫기" : sd || seed ? "열어서 고치기" : "던전 짜기") + '</button><a class="btn small" href="' + ctx.mapHref(m) + '">강호도에서 보기</a></div>' +
         (open && ST.ed ? editor(key) : "") + "</article>");
     }); });
-    return '<div class="gm-dgs dg-list">' + out.join("") + "</div>";
+    return addForm() + '<div class="gm-dgs dg-list">' + out.join("") + "</div>";
+  }
+  /* 새 던전: 있는 구역을 던전으로 삼거나, 구역을 새로 만들어 어디에 어떤 길로 이을지 정한다 */
+  function addForm() {
+    var a = ST.add;
+    if (!a) return '<div class="gm-bar"><button type="button" class="btn small primary" data-dg="addnew">새 던전 추가</button>' + (ST.addMsg ? '<span class="gm-saved" role="status">' + e(ST.addMsg) + "</span>" : "") + "</div>";
+    var ms = CTX.maps(), groups = {}, m = ms.filter(function (x) { return x.id === a.map; })[0];
+    ms.forEach(function (x) { var k = x.region ? "지역" : x.group === "세외" ? "세외" : x.slot === "place" ? "명승" : "문파"; (groups[k] = groups[k] || []).push(x); });
+    var mo = '<option value="">고르세요</option>' + ["지역", "문파", "명승", "세외"].map(function (k) { return groups[k] ? '<optgroup label="' + k + '">' + groups[k].map(function (x) { return '<option value="' + e(x.id) + '"' + (x.id === a.map ? " selected" : "") + ">" + e(x.name) + "</option>"; }).join("") + "</optgroup>" : ""; }).join("");
+    var zs = m ? m.zones.filter(function (z) { return !z.out; }) : [], free = zs.filter(function (z) { return !z.dg; });
+    var h = '<div class="dg-add"><h4>새 던전 추가</h4><div class="gm-bar">' + fld("구역도", '<select data-dga="map">' + mo + "</select>") +
+      fld("던전 종류", '<select data-dga="kind">' + opts(Object.keys(SCALE), a.kind) + "</select>") +
+      fld("자리", '<select data-dga="mode">' + opts(["old", "new"], a.mode, ["이미 있는 구역을 던전으로", "구역을 새로 만들기"]) + "</select>") + "</div>";
+    if (m && a.mode === "old") h += '<div class="gm-bar">' + fld("구역", '<select data-dga="zone"><option value="">고르세요</option>' + opts(free.map(function (z) { return z.id; }), a.zone, free.map(function (z) { return z.n + (z.t ? " · " + z.t : ""); })) + "</select>") + "</div>";
+    if (m && a.mode === "new") h += '<div class="gm-bar">' + fld("새 구역 이름", '<input data-dga="n" value="' + e(a.n || "") + '">') + fld("성격", '<input data-dga="t" value="' + e(a.t || "") + '" size="8" placeholder="' + e(a.kind) + '">') +
+      fld("이을 구역", '<select data-dga="to"><option value="">고르세요</option>' + opts(zs.map(function (z) { return z.id; }), a.to, zs.map(function (z) { return z.n; })) + "</select>") +
+      fld("길", '<select data-dga="lt">' + opts(Object.keys(LINKS), a.lt || "rough", Object.keys(LINKS).map(function (k) { return LINKS[k]; })) + "</select>") +
+      fld("하나 더 잇기(선택)", '<select data-dga="to2"><option value="">잇지 않음</option>' + opts(zs.map(function (z) { return z.id; }), a.to2 || "", zs.map(function (z) { return z.n; })) + "</select>") +
+      fld("그 길", '<select data-dga="lt2">' + opts(Object.keys(LINKS), a.lt2 || "secret", Object.keys(LINKS).map(function (k) { return LINKS[k]; })) + "</select>") + "</div>" +
+      fld("구역 설명", '<textarea data-dga="e" rows="2">' + e(a.e || "") + "</textarea>", "wide") +
+      '<p class="hint">암도로 이으면 조사로 찾기 전에는 없는 길입니다. 일방은 이을 구역에서 던전 쪽으로만 갑니다. 새 구역은 GM에게만 보여요.</p>';
+    return h + '<div class="sheet-actions"><button type="button" class="btn small primary" data-dg="addok">만들고 짜기</button><button type="button" class="btn small" data-dg="addcancel">그만두기</button><span class="gm-saved" role="status">' + e(ST.addMsg || "") + "</span></div></div>";
   }
 
   /* ── 문서로 내보내기 ── */
@@ -202,7 +269,7 @@
     d.floors.forEach(function (fl, i) {
       var N = {}; fl.zones.forEach(function (z) { N[z.id] = z.n; });
       o.push("## " + (i + 1) + "층 " + fl.n + " — " + fl.shape + (fl.mist ? " (마기 한계 " + fl.mist + ")" : ""), "", "| 구역 | 내용 | 일어나는 일 | 에너미 | 전장도 |", "|---|---|---|---|---|");
-      fl.zones.forEach(function (z) { var mark = z["in"] ? " (들머리)" : z.down ? " (내림목)" : z.end ? " (끝방)" : ""; o.push("| " + z.n + mark + " | " + z.k + " | " + (z.e || "").replace(/\n/g, " ") + " | " + (z.foes || "").replace(/\n/g, " ") + " | " + (z.m ? "전용" : z.f && f ? f.setOf(z.f).n : "") + " |"); });
+      fl.zones.forEach(function (z) { var mark = z["in"] ? " (들머리)" : z.down ? " (내림목)" : z.end ? " (끝방)" : ""; var np = z.npc && CTX.gm.npc.filter(function (n) { return n.id === z.npc; })[0]; o.push("| " + z.n + mark + " | " + (z.k === "보스" ? (z.bt || (z.end ? "최종" : "중간")) + " 보스" + (np ? "(" + np.n + ")" : "") : z.k) + " | " + (z.e || "").replace(/\n/g, " ") + " | " + (z.foes || "").replace(/\n/g, " ") + " | " + (z.m ? "전용" : z.f && f ? f.setOf(z.f).n : "") + " |"); });
       o.push("", "길: " + fl.links.map(function (l) { return N[l[0]] + (l[2] === "one" ? " → " : " — ") + N[l[1]] + "(" + LINKS[l[2]] + ")"; }).join(", "), "");
       fl.zones.forEach(function (z) { if (z.m) o.push(z.n + " 전용 전장도:", "```", z.m.join("\n"), "```", ""); });
     });
@@ -218,15 +285,23 @@
     if (v) { fl.zones.forEach(function (o) { delete o[v]; if (v === "down") delete o.end; if (v === "end") delete o.down; }); z[v] = 1; }
   }
   function onChange(ev) {
-    var t = ev.target; if (!ST.ed) return false;
+    var t = ev.target;
+    if (t.dataset.dga && ST.add) { ST.add[t.dataset.dga] = t.value; if (t.dataset.dga === "map") { ST.add.zone = ""; ST.add.to = ""; ST.add.to2 = ""; } ST.addMsg = ""; if (/^(map|mode|kind)$/.test(t.dataset.dga)) CTX.redraw(); return true; }
+    if (!ST.ed) return false;
     if (t.dataset.dgl) { var p = t.dataset.dgl.split(":"), fl0 = curFloor(); fl0.links[+p[0]][+p[1]] = t.value; touch(); CTX.redraw(); return true; }
     var k = t.dataset.dgf; if (!k) return false;
     var d = ST.ed, fl = curFloor(), z = curZone(), v = t.value, re = false;
-    if (k === "d.kind") d.kind = v; else if (k === "d.dir") d.dir = v; else if (k === "d.mist") d.mist = v;
+    if (k.charAt(0) === "c" && ST.cu && ST.cu.nz) {
+      var nz = ST.cu.nz; nz.links = nz.links && nz.links.length ? nz.links : [["", "road"]];
+      if (k === "c.n") nz.n = v; else if (k === "c.t") nz.t = v; else if (k === "c.e") nz.e = v; else if (k === "c.to") nz.links[0][0] = v; else if (k === "c.lt") nz.links[0][1] = v;
+      touch(); var s0 = document.querySelector(".dg-ed .gm-saved"); if (s0) s0.textContent = "저장하지 않은 변경이 있어요"; return true;
+    }
+    if (k === "d.kind") { d.kind = v; if (ST.cu) ST.cu.kind = v; } else if (k === "d.dir") d.dir = v; else if (k === "d.mist") d.mist = v;
     else if (k === "f.n") { fl.n = v; re = true; } else if (k === "f.shape") fl.shape = v; else if (k === "f.mist") { if (v) fl.mist = v; else delete fl.mist; }
     else if (z && k === "z.n") { z.n = v; re = true; } else if (z && k === "z.k") { z.k = v; if ((v === "전투" || v === "보스") && !z.f) z.f = setFor(d.kind, z.n); re = true; }
     else if (z && k === "z.mark") { setMark(fl, z, v); re = true; }
     else if (z && (k === "z.x" || k === "z.y")) { var n = Math.max(0, Math.min(8, Math.round(+v) || 0)); z.at = k === "z.x" ? [n, z.at[1]] : [z.at[0], n]; re = true; }
+    else if (z && k === "z.bt") { z.bt = v; re = true; } else if (z && k === "z.npc") { if (v) z.npc = v; else delete z.npc; re = true; }
     else if (z && k === "z.e") z.e = v; else if (z && k === "z.foes") z.foes = v;
     else if (z && k === "z.f") { z.f = v; re = true; }
     else if (z && k === "z.pick") { var s = F().setOf(z.f); if (v !== "" && s.maps[+v]) z.m = s.maps[+v].rows.slice(); re = true; }
@@ -241,9 +316,29 @@
     var b = ev.target.closest("[data-dg]"); if (!b) return false;
     ev.preventDefault();
     var a = b.dataset.dg, arg = a.indexOf(":") > 0 ? a.slice(a.indexOf(":") + 1) : "", act = a.split(":")[0], d = ST.ed, fl = curFloor(), z = curZone(), key = ST.open, zi;
+    if (act === "addnew") { ST.add = { map: "", mode: "old", kind: "동굴", lt: "rough", lt2: "secret" }; ST.addMsg = ""; CTX.redraw(); return true; }
+    if (act === "addcancel") { ST.add = null; ST.addMsg = ""; CTX.redraw(); return true; }
+    if (act === "addok") {
+      var A = ST.add, m0 = A && CTX.maps().filter(function (x) { return x.id === A.map; })[0], cu, zoneId;
+      if (!m0) ST.addMsg = "구역도를 고르세요";
+      else if (A.mode === "old") { if (!A.zone) ST.addMsg = "구역을 고르세요"; else { zoneId = A.zone; cu = { kind: A.kind }; } }
+      else if (!(A.n || "").trim()) ST.addMsg = "새 구역 이름을 적으세요";
+      else if (!A.to) ST.addMsg = "이을 구역을 고르세요";
+      else { zoneId = "x" + Date.now().toString(36); cu = { kind: A.kind, nz: { n: A.n.trim(), t: (A.t || "").trim() || A.kind, e: A.e || "", links: [[A.to, A.lt || "rough"]].concat(A.to2 && A.to2 !== A.to ? [[A.to2, A.lt2 || "secret"]] : []) } }; }
+      if (!cu) { CTX.redraw(); return true; }
+      if (!CTX.db) { ST.addMsg = "서고가 아직 열리지 않았어요"; CTX.redraw(); return true; }
+      var nk = m0.id + "~" + zoneId, nd0 = { kind: A.kind, dir: DIROF[A.kind] || "내려감", mist: "1d4+1", floors: [] };
+      var body = { kind: "dungeon", map: m0.id, zone: zoneId, n: cu.nz ? cu.nz.n : (m0.zones.filter(function (o) { return o.id === zoneId; })[0] || {}).n, cu: JSON.stringify(cu), j: JSON.stringify(nd0), at: Date.now() };
+      ST.addMsg = "만드는 중…"; CTX.redraw();
+      CTX.db.collection(CTX.col).doc(docId(nk)).set(body).then(function () {
+        if (!docOf(nk)) { CTX.gm.dg = (CTX.gm.dg || []).concat([Object.assign({ id: docId(nk) }, body)]); }
+        sync(); ST.add = null; ST.addMsg = ""; ST.open = nk; ST.cu = cu; ST.ed = nd0; ST.fl = 0; ST.z = ""; ST.dirty = false; ST.msg = "만들었어요. '통째로 새로 짜기'로 시작하세요"; ST.del = false; CTX.redraw();
+      }, function (err) { ST.addMsg = "만들지 못했어요 (" + (err && err.code || "오류") + ")"; CTX.redraw(); });
+      return true;
+    }
     if (act === "open") {
-      if (ST.open === arg) { if (ST.dirty && b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "저장 안 한 변경을 버리고 닫기"; return true; } ST.open = ""; ST.ed = null; }
-      else { ST.open = arg; ST.ed = clone(stored(arg) || SEED[arg] || { kind: zoneOf(arg).z.dg, dir: DIROF[zoneOf(arg).z.dg] || "내려감", mist: "1d4+1", floors: [] }); ST.fl = 0; ST.z = ""; }
+      if (ST.open === arg) { if (ST.dirty && b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "저장 안 한 변경을 버리고 닫기"; return true; } ST.open = ""; ST.ed = null; ST.cu = null; }
+      else { ST.open = arg; ST.cu = cuOf(docOf(arg)); ST.ed = clone(stored(arg) || SEED[arg] || { kind: zoneOf(arg).z.dg, dir: DIROF[zoneOf(arg).z.dg] || "내려감", mist: "1d4+1", floors: [] }); ST.fl = 0; ST.z = ""; }
       ST.dirty = false; ST.msg = ""; ST.del = false; CTX.redraw(); return true;
     }
     if (!d) return true;
@@ -254,6 +349,7 @@
     else if (act === "delfloor" && fl) { if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "한 번 더 누르면 지움"; return true; } d.floors.splice(ST.fl, 1); ST.fl = Math.max(0, ST.fl - 1); ST.z = ""; touch(); }
     else if (act === "relay" && fl) { var n = Math.max(2, Math.min(9, +document.getElementById("dg-n").value || fl.zones.length)), isLast = ST.fl === d.floors.length - 1, nf = makeFloor(fl.shape, n, { set: setFor(d.kind, zi.z.n), kind: d.kind, fi: ST.fl, last: isLast, mid: !isLast && ST.fl === d.floors.length - 2 }); nf.n = fl.n; if (fl.mist) nf.mist = fl.mist; d.floors[ST.fl] = nf; ST.z = ""; touch(); }
     else if (act === "addzone" && fl) { var mx = 0, my = 0; fl.zones.forEach(function (o) { my = Math.max(my, o.at[1]); }); fl.zones.forEach(function (o) { if (o.at[1] === my) mx = Math.max(mx, o.at[0] + 1); }); var nz = { id: zid(), n: "새 구역", k: "빈 곳", e: "", at: [Math.min(mx, 8), my] }; fl.zones.push(nz); ST.z = nz.id; touch(); }
+    else if (act === "boss" && z) { z.k = "보스"; z.bt = ST.fl === d.floors.length - 1 ? "최종" : "중간"; if (!z.f) z.f = setFor(d.kind, z.n); touch(); }
     else if (act === "delzone" && fl && z) { fl.zones = fl.zones.filter(function (o) { return o !== z; }); fl.links = fl.links.filter(function (l) { return l[0] !== z.id && l[1] !== z.id; }); ST.z = ""; touch(); }
     else if (act === "addlink" && fl && fl.zones.length > 1) { fl.links.push([ST.z || fl.zones[0].id, fl.zones[fl.zones[0].id === ST.z ? 1 : fl.zones.length - 1].id, "road"]); touch(); }
     else if (act === "dellink" && fl) { fl.links.splice(+arg, 1); touch(); }
@@ -264,16 +360,16 @@
       if (!CTX.db) return true;
       var bad = ""; d.floors.forEach(function (f2, i) { if (!f2.zones.some(function (o) { return o["in"]; })) bad = (i + 1) + "층에 들머리가 없어요"; else if (!f2.zones.some(function (o) { return o.down || o.end; })) bad = (i + 1) + "층에 내림목이나 끝방이 없어요"; });
       ST.msg = "저장하는 중…"; CTX.redraw();
-      CTX.db.collection(CTX.col).doc(docId(key)).set({ kind: "dungeon", map: zi.m.id, zone: zi.z.id, n: zi.z.n, j: JSON.stringify(d), at: Date.now() })
+      CTX.db.collection(CTX.col).doc(docId(key)).set(Object.assign({ kind: "dungeon", map: zi.m.id, zone: zi.z.id, n: ST.cu && ST.cu.nz ? ST.cu.nz.n : zi.z.n, j: JSON.stringify(d), at: Date.now() }, ST.cu ? { cu: JSON.stringify(ST.cu) } : {}))
         .then(function () { ST.dirty = false; ST.msg = "저장했어요" + (bad ? " (" + bad + ")" : ""); CTX.redraw(); }, function (err) { ST.msg = "저장하지 못했어요 (" + (err && err.code || "오류") + ")"; CTX.redraw(); });
       return true;
     }
     else if (act === "del") {
       if (!ST.del) { ST.del = true; CTX.redraw(); return true; }
-      CTX.db.collection(CTX.col).doc(docId(key)).delete().then(function () { ST.open = ""; ST.ed = null; ST.del = false; CTX.redraw(); }, function (err) { ST.msg = "지우지 못했어요 (" + (err && err.code || "오류") + ")"; CTX.redraw(); });
+      CTX.db.collection(CTX.col).doc(docId(key)).delete().then(function () { CTX.gm.dg = (CTX.gm.dg || []).filter(function (x) { return x.id !== docId(key); }); ST.open = ""; ST.ed = null; ST.cu = null; ST.del = false; CTX.redraw(); }, function (err) { ST.msg = "지우지 못했어요 (" + (err && err.code || "오류") + ")"; CTX.redraw(); });
       return true;
     }
     CTX.redraw(); return true;
   }
-  window.WX_DG = { html: html, onClick: onClick, onChange: onChange, isDoc: function (d) { return d && (d.kind === "dungeon" || /^dg-/.test(d.id || "")); }, make: makeDungeon, layout: layout, seed: SEED, toMd: toMd, state: ST };
+  window.WX_DG = { html: html, onClick: onClick, onChange: onChange, isDoc: function (d) { return d && (d.kind === "dungeon" || /^dg-/.test(d.id || "")); }, sync: sync, make: makeDungeon, layout: layout, seed: SEED, toMd: toMd, state: ST };
 })();

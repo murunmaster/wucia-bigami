@@ -63,6 +63,7 @@
       var all = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); });
       function isDg(d) { return d.kind === "dungeon" || /^dg-/.test(d.id); }   /* 던전메이커가 같은 저장소에 두는 문서 */
       GM.dg = all.filter(isDg);
+      if (window.WX_DG) WX_DG.sync(dgCtx());
       GM.gibo = all.filter(function (d) { return !isDg(d); }).sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
       if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; migrateGiboD(); }
       redraw();
