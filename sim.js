@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -152,6 +152,7 @@
     else if (e.key === "as") { var t = e.arg.charAt(0); a.type = t === "s" ? "사격전" : t === "c" ? "접근전" : "집단전"; a.dmg = Number(e.arg.slice(1)) || 0; if (a.dmg === 0 && t === "s") a.type = "사격전"; }
     else if (e.key === "lvr") { var L = e.arg.split(",").map(Number), i = lvi(f); a.r = i < 2 ? L[0] : i < 4 ? L[1] : L[2]; }
     else if (e.key === "uses") a.uses = e.v;
+    else if (e.key === "needmv") a.needmv = Number(e.arg) || 3;
     else if (e.key === "aline") a.aline = true;
   }
 
@@ -1019,6 +1020,7 @@
       if (cost > budget) return;
       if (f.st["내상"] === a.name) return;
       if (a.uses && (f.B.names[a.name] || 0) >= a.uses) return;
+      if (a.needmv && (f.R.moved || 0) < a.needmv) return;
       if (f.buffs.some(function (b) { return b.key === "noatkfld" && A.fieldOf(bestSkill(f, a.sk)) === b.arg; })) return;
       var sk = bestSkill(f, a.sk), tn = tnOf(f, sk); if (tn >= 99) return;
       foes.forEach(function (g) {
@@ -1077,11 +1079,12 @@
     if (!foes.length || !cells.length) return f.pos;
     var g = plan ? plan.g : foes.slice().sort(function (a, b) { return dist(f.pos, a.pos) - dist(f.pos, b.pos); })[0];
     var r = plan ? this.rangeOfAtk(f, plan.a) : 1;
+    var run = f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "mvmk"; }); }), P0 = f.pos;
     cells.sort(function (c1, c2) {
       function sc(c) {
         var d = dist(c, g.pos), ok = d <= r ? 0 : 10 + d;
         var threat = foes.filter(function (h) { return dist(c, h.pos) <= 1.5; }).length * (r > 1.5 ? 0.6 : 0);
-        return ok + threat + c.d * 0.05 - (r > 1.5 ? d * 0.1 : 0) - (plan && (plan.a.line || plan.a.aline) && inLine(c, g.pos) ? 0.5 : 0);
+        return ok + threat + c.d * 0.05 - (r > 1.5 ? d * 0.1 : 0) - (plan && (plan.a.line || plan.a.aline) && inLine(c, g.pos) ? 0.5 : 0) - (run && cheb(c, P0) >= 3 ? 0.8 : 0);
       }
       return sc(c1) - sc(c2);
     });
@@ -1216,6 +1219,8 @@
       if (to && (to.x !== m.pos.x || to.y !== m.pos.y)) { m.R.moved = Math.max(Math.abs(to.x - m.pos.x), Math.abs(to.y - m.pos.y)); m.pos = { x: to.x, y: to.y }; }
     }
     this.zones.forEach(function (z) { if (z.follow && alive(z.follow)) z.c = { x: z.follow.pos.x, y: z.follow.pos.y }; });
+    /* 북원 마세: 이동 단계에 N칸 이상 움직였으면 기세를 얻는다(mvmk:이름:N, 카드마다 라운드에 1번) */
+    live.forEach(function (f) { if (!alive(f)) return; f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key !== "mvmk") return; var q = e.arg.split(":"); if ((f.R.moved || 0) >= Number(q[1] || 3)) self.applyEff({ key: "mk", arg: q[0], v: 1 }, f, f, {}); }); }); });
     if (this.opt.onDraw) this.opt.onDraw();
     for (var p = 6; p >= 1 && !this.over(); p--) {
       var grp = order.filter(function (f) { return alive(f) && f.pow === p; });
@@ -1518,7 +1523,7 @@
     else if (w.kind === "turn") {
       var budget = b.budget(me);
       var atks = me.attacks.map(function (a, i) {
-        var sk = bestSkill(me, a.sk), tn = tnOf(me, sk), dis = a.cost > budget || tn >= 99 || me.st["내상"] === a.name || (a.uses && (me.B.names[a.name] || 0) >= a.uses) || me.R.atk;
+        var sk = bestSkill(me, a.sk), tn = tnOf(me, sk), dis = a.cost > budget || tn >= 99 || me.st["내상"] === a.name || (a.uses && (me.B.names[a.name] || 0) >= a.uses) || (a.needmv && (me.R.moved || 0) < a.needmv) || me.R.atk;
         return '<label class="pick' + (dis ? " off" : "") + '"><input type="radio" name="sp-a" value="' + i + '"' + (sel.atk === i ? " checked" : "") + (dis ? " disabled" : "") + '><span><span class="nm">' + esc(a.name) + '</span> <span class="hint">《' + esc(sk) + "》 " + (tn >= 99 ? "—" : tn + "+") + " · 간격 " + b.rangeOfAtk(me, a) + " · 코스트 " + a.cost + " · " + esc(a.type) + (a.type === "집단전" ? "" : " " + a.dmg) + (a.area !== "one" ? " · 여럿" : "") + "</span></span></label>";
       }).join("");
       var sups = me.supports.map(function (s, i) { if (s.trig !== "H" || !b.clOk(me, s.cl, null, atkA)) return ""; return '<label class="hint"><input type="checkbox" data-sup="' + i + '"' + ((sel.sup || []).indexOf(i) >= 0 ? " checked" : "") + "> 명중 직전 보조 " + esc(s.n) + " (코스트 " + s.cost + ")</label>"; }).join(" ");

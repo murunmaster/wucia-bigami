@@ -19,6 +19,8 @@
   addLocal("r-yodong", { id: "oh", n: "해동", out: 1, go: "x:haedong", at: [4, 0] }, "yl");
   addLocal("r-zhejiang", { id: "od", n: "동영 뱃길", out: 1, go: "s:dongyeong", at: [3, 3] }, "nb", "water");
   addLocal("r-guangdong", { id: "oc", n: "천축 남해 뱃길", out: 1, go: "s:cheonchuk", at: [4, 2] }, "om", "water");
+  /* 북원(세외 일곱째 문파) 본거지: 몽골 초원의 화림 */
+  addLocal("r-monggol", { id: "hl", n: "화림(카라코룸)", t: "본거지", e: "칸의 막사가 선 옛 원의 도읍. 북원 소속만 야영할 수 있다. 역적 상태인 캐릭터도 들어올 수 있다(금의위가 지목한 역적은 북원의 손님이다).", at: [2, 2], home: 1 }, "cm", "road");
   addLocal("r-nurgan", { id: "oh", n: "해동 두만강", out: 1, go: "x:haedong", at: [2, 2] }, "cb", "rough");
 
   function P(id, places, prov, name, han, where, entry, zones, links, note) {

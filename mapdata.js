@@ -53,6 +53,7 @@ window.WX_MAP = {
     { id: "shanhai", name: "산해관", han: "山海關", prov: "bukjikrye", at: [119.75, 40.0], kind: "관문", desc: "장성의 동쪽 끝 관문. 산과 바다 사이 좁은 길을 막고 요동으로 가는 길을 지킨다." },
     { id: "suzhou", name: "소주", han: "蘇州", prov: "namjikrye", at: [120.62, 31.3], kind: "도시", desc: "운하가 집 사이로 흐르는 강남의 도시. 비단과 원림으로 이름났다." },
     { id: "haedong", name: "해동(조선)", han: "海東", prov: "", at: [126.98, 37.57], kind: "세외", desc: "압록강 건너 조선. 도성 한양을 두고, 의주에서 요동을 거쳐 북경으로 조천 사신을 보낸다." },
+    { id: "karakorum", name: "화림(카라코룸)", han: "和林", prov: "", at: [102.83, 47.20], kind: "세외", desc: "옛 원의 도읍. 원이 대도를 잃은 뒤 북원의 칸이 막사를 친 곳." },
     { id: "baikal", name: "바이칼호", han: "貝加爾湖", prov: "", at: [108.00, 53.50], kind: "호수", desc: "북쪽 끝 초승달 모양의 깊은 호수. 겨울이면 두껍게 얼어붙는다." }
   ],
 
@@ -82,7 +83,8 @@ window.WX_MAP = {
     { id: "dongyeong", name: "동영", group: "세외", at: [136.00, 35.30], where: "바다 건너 섬나라", approx: true },
     { id: "seoyeok", name: "서역", group: "세외", at: [71.60, 40.30], where: "땅 끝 너머 색목인의 땅 (서쪽 바깥)", approx: true },
     { id: "cheonchuk", name: "천축", group: "세외", at: [82.00, 24.00], where: "천축국", approx: true },
-    { id: "haedong", name: "해동", group: "세외", at: [129.60, 41.80], where: "해동 함경도 경성 북병영", place: "haedong" }
+    { id: "haedong", name: "해동", group: "세외", at: [129.60, 41.80], where: "해동 함경도 경성 북병영", place: "haedong" },
+    { id: "bugwon", name: "북원", group: "세외", at: [102.83, 47.20], where: "몽골 초원 화림(카라코룸)", place: "karakorum" }
   ],
   /* 지도에 한 점으로 찍지 않는 세력 */
   roaming: [
