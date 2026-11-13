@@ -133,9 +133,9 @@ function route() {
   var full = (location.hash || "").slice(1);
   var h = full.split("-")[0];
   if (ROUTES.indexOf(h) < 0) { h = "home"; full = "home"; }
-  var fld = h === "map" && /^map-f(-|$)/.test(full) && !!window.WX_FIELD;
-  if (h === "map" && !fld && MAPST && document.getElementById("gmap")) { mapSelect(full); return; }
-  if (h !== "map" || fld) { if (MAPST) cancelAnimationFrame(MAPST.anim); MAPST = null; }
+  var fld = h === "map" && /^map-f(-|$)/.test(full) && !!window.WX_FIELD, brd = h === "map" && /^map-b(-|$)/.test(full) && !!window.WX_BOARD;
+  if (h === "map" && !fld && !brd && MAPST && document.getElementById("gmap")) { mapSelect(full); return; }
+  if (h !== "map" || fld || brd) { if (MAPST) cancelAnimationFrame(MAPST.anim); MAPST = null; }
   [].forEach.call(document.querySelectorAll("#tabs a"), function (a) {
     if (a.getAttribute("href") === "#" + topRoute(h)) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
   });
@@ -144,6 +144,7 @@ function route() {
   if (h === "home") renderHome();
   else if (h === "inn") renderInn();
   else if (fld) WX_FIELD.render(view, full.slice(6));
+  else if (brd) WX_BOARD.render(view, full.slice(6));
   else if (h === "map") renderMap(full);
   else if (h === "gm") { if (window.renderGM) renderGM(); else renderEmpty(); }
   else if (!hasData) renderEmpty();
@@ -650,7 +651,7 @@ function mapOverview() {
   return '<div class="lbl">전도 全圖</div><h2>중원과 세외</h2>' +
     '<div class="field"><label for="m-q">찾기</label><input id="m-q" type="search" placeholder="성·산·도시·문파 이름" autocomplete="off"></div><div id="m-res"></div>' +
     '<div class="mlist"><h3>묶음</h3><div class="chips">' + MAPD.themes.map(function (t) { return '<a class="chip" href="#map-t-' + t.id + '">' + esc(t.name) + "</a>"; }).join("") + "</div></div>" +
-    (window.WX_FIELD ? '<div class="mlinks"><a class="btn small" href="#map-f">전장도(戰場圖) — 전투 격자맵</a></div>' : "") +
+    (window.WX_FIELD ? '<div class="mlinks"><a class="btn small" href="#map-f">전장도(戰場圖) — 전투 격자맵</a>' + (window.WX_BOARD ? '<a class="btn small" href="#map-b">전투판(戰鬪板) — 함께 하는 전투</a>' : "") + "</div>" : "") +
     '<div class="mlist"><h3>문파 표식</h3><ul class="legend">' + groups + '<li><span class="seal-dot approx"></span>점선: 위치 미정</li><li><span class="zring-dot"></span>고리: 구역도가 있는 곳</li></ul></div>' +
     '<p class="hint">지역을 누르면 지도 위에 그 지역의 구역과 길이 그려지고, 구역을 누르면 이 칸에 설명이 열립니다. 문파나 명승을 누르면 지도 아래에 그곳의 구역도가 열립니다.</p>' +
     listBlock("한 점에 찍지 않는 세력", MAPD.roaming.map(function (r) { return "<b>" + esc(r.name) + '</b> <span class="hint">' + esc(r.where) + "</span>"; }));
@@ -1877,6 +1878,7 @@ window.WX_SIM_API = {
   skills: function () { return (DATA.skills || []).map(function (x) { return x.n; }); },
   fieldOf: (function () { var m = null; return function (n) { if (!m) { m = {}; (DATA.skills || []).forEach(function (x) { m[x.n] = x.f; }); } return m[n]; }; })(),
   myChars: function () { return chars.map(fixChar); },
+  db: function () { return DBH; }, me: function () { return { id: MY_ID || "", gm: !!CAN_EDIT, name: playerName() }; },
   archive: function () { return PCS.map(function (d) { return { id: d.id, player: d.player, chars: (d.chars || []).map(function (c) { return withSecret(d.id, c); }) }; }); }
 };
 

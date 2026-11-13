@@ -165,7 +165,7 @@
     var set = setOf(UI.set); if (!UI.m) load(set, 0);
     var used = {}; UI.m.g.forEach(function (r) { r.forEach(function (c) { used[c] = 1; }); });
     var my = mine();
-    view.innerHTML = api.viewHead("map", "전장도(戰場圖) — 6×6 전투판에 까는 지형 맵입니다. 싸움이 난 구역의 성격에 맞는 묶음에서 고르거나 무작위로 만들고, 코코포리아에 넣을 그림으로 내려받습니다. 지형 효과는 율령 '전투'의 지형 규칙을 따릅니다.") + '<nav class="subtabs" aria-label="강호도"><a href="#map">전도·구역도</a><a href="#map-f" aria-current="page">전장도(戰場圖)</a></nav>' +
+    view.innerHTML = api.viewHead("map", "전장도(戰場圖) — 6×6 전투판에 까는 지형 맵입니다. 싸움이 난 구역의 성격에 맞는 묶음에서 고르거나 무작위로 만들고, 코코포리아에 넣을 그림으로 내려받습니다. 지형 효과는 율령 '전투'의 지형 규칙을 따릅니다.") + '<nav class="subtabs" aria-label="강호도"><a href="#map">전도·구역도</a><a href="#map-f" aria-current="page">전장도(戰場圖)</a>' + (window.WX_BOARD ? '<a href="#map-b">전투판(戰鬪板)</a>' : "") + '</nav>' +
       '<div class="fld"><aside class="fld-side"><h3>묶음</h3><div class="chips">' + SETS.map(function (s) { return '<button type="button" class="chip' + (s.id === set.id ? " on" : "") + '" data-set="' + s.id + '">' + esc(s.n) + "</button>"; }).join("") + "</div>" +
       '<p class="hint">' + esc(set.z) + " · 장애물: " + esc(set.obs) + "</p>" +
       "<h3>맵</h3><div class=\"fld-list\">" + set.maps.map(function (mp, i) { return '<button type="button" class="btn small' + (UI.idx === i ? " primary" : "") + '" data-map="' + i + '">' + esc(mp.n) + "</button>"; }).join("") +
