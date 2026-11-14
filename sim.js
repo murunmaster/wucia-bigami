@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -238,7 +238,7 @@
     if (c === "hp<") return !!foe && hpLeft(me) < hpLeft(F);
     if (c === "hp>") return !!foe && hpLeft(me) > hpLeft(F);
     if (c === "thp<") return !!foe && hpLeft(F) < hpLeft(me);
-    var JZ = Math.min(2, me.mk["종자"] || me.mk["강시"] || 0); /* 종자(강시·표물·동료)는 주인 곁에 선 아군으로 친다 */
+    var JZ = me.mk["강시"] ? Math.min(2, me.mk["강시"]) : Math.min(1, me.mk["종자"] || 0); /* 종자(강시·표물·동료)는 주인 곁에 선 아군으로 친다 */
     if (c === "adj") return this.adjAllies(me).length + JZ > 0;
     if (c === "alone") return this.adjAllies(me).length === 0;
     if (c === "adj2") return this.adjAllies(me).length + JZ >= 2;
@@ -1301,6 +1301,7 @@
       Object.keys(RULES.mkTick).forEach(function (k) { var tk = RULES.mkTick[k]; if ((f.mk[k] || 0) >= tk.min) { self.say(f.name + " — " + k + "이(가) 돈다", "hit"); self.hurt(f, "사격전", tk.dm || 1, null); if (alive(f)) { f.mk[k] -= tk.dec || 0; if (f.mk[k] <= 0) delete f.mk[k]; } } });
       f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "zmk" && self.clOk(f, cl, null, null)) { self.limUse(f, cl); self.applyEff({ key: "mk", arg: e.arg, v: 1 }, f, f, {}); } }); });
       f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "zmkhurt") { var q = e.arg.split(":"); self.foes(f).filter(function (g) { return alive(g) && (g.mk[q[0]] || 0) >= Number(q[1] || 3); }).forEach(function (g) { self.hurt(g, q[2] === "c" ? "접근전" : "사격전", 1, f); }); } }); }); /* 라운드 끝 표식 피해(당가 화공대법) */
+      f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "zally" && alive(f) && self.clOk(f, cl, null, null)) { var al = self.friends(f).filter(function (g) { return g !== f && alive(g) && cheb(g.pos, f.pos) <= 2; })[0]; if (al) { al.buffs.push({ key: e.arg || "ha", v: 1, left: 2, uses: 1 }); self.say(f.name + " — 호령: " + al.name, "dim"); } } }); }); /* 무림맹 호령 */
       f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "zmkfoe" && self.clOk(f, cl, null, null)) { var fz = self.foes(f).filter(function (g) { return g.mk[e.arg] > 0; })[0]; if (fz) self.applyEff({ key: "mk", arg: e.arg, v: 1 }, f, fz, {}); } }); });
       if (f.flags.bank) f.bankNext = Math.min(lvi(f) >= 2 ? 2 : 1, Math.max(0, self.budget(f)));
       f.buffs.forEach(function (b) { b.left--; }); f.buffs = f.buffs.filter(function (b) { return b.left > 0; });
