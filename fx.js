@@ -1024,3 +1024,5 @@ Object.assign(window.WX_FX, {"소우주 역천경(小宇宙 逆天經)": "H prem
 Object.assign(window.WX_FX, {"구운열염관(九雲烈焰冠)": "P[smk:포진>=3] ha1 /r1", "일족일도": "T self:mk:발도 asatk /r1"});
 /* 11-14: 예열 무공 10장(개방·동영·서역·병마령·천축), 앞서 고친 예열 3장은 되돌림 */
 Object.assign(window.WX_FX, {"혹약재연(或躍在淵)": "S self:mk:경력 /r1", "일족일도": "T self:mk:발도 asatk /r1", "주문 외우기(Incantation)": "T self:mk:영창 /r1", "취와(醉臥)": "T self:mk:경력 self:hd1~2#1 asatk /r1", "잠룡출연(潛龍出淵)": "T self:mk:경력*2 asatk /r1", "미키리(見切り)": "T self:mk:발도 asatk /r1 ; V foe:c1 rng1.5 /r1", "이아이고시(居合腰)": "T self:mk:발도 self:powhi~2 asatk /r1", "방호의 원(Circulus)": "T self:mk:영창 self:hd1~2#1 asatk /r1", "명상(Meditatio)": "T self:mk:영창*2 asatk /r1", "연시(煉屍)": "T self:mk:강시 asatk /r1", "시군행(屍軍行)": "T foes:mv-1~2 rng2 asatk /r1", "아사나(Asana)": "T self:mk:아스트라 self:ea1~1#1 asatk /r1", "프라티아하라(Pratyahara)": "T self:mk:아스트라 self:cleanse asatk /r1"});
+/* 11-14: 상회 전당압물 보조 봉인으로 되돌림(서브 마스터 평) */
+Object.assign(window.WX_FX, {"전당압물(典當押物)": "S[tmk:빚>=2] foe:nosup~2 /r1"});
