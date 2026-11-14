@@ -178,13 +178,23 @@
   /* ── 한 판 ── */
   function Battle(fighters, opt) {
     this.f = fighters; this.opt = opt || {}; this.round = 0; this.log = []; this.zones = [];
+    this.map = this.opt.map || null; this.grid = this.map ? this.map.g : null;
     this.terrain = this.opt.terrain || "평지"; this.maxRounds = this.opt.maxRounds || 15; this.quiet = !!this.opt.quiet;
     this.place();
   }
   var B = Battle.prototype;
   B.say = function (s, cls) { if (!this.quiet) { this.log.push({ r: this.round, s: s, c: cls || "" }); if (this.opt.onLog) this.opt.onLog(); } };
+  B.cellOf = function (f) { return this.grid ? this.grid[f.pos.y][f.pos.x] : "."; };
   B.place = function () {
     var used = {}, self = this;
+    if (this.map && this.map.a.length && this.map.b.length) {
+      [0, 1].forEach(function (side) {
+        var st = (side === 0 ? self.map.a : self.map.b).slice(), i, x, y;
+        for (i = 0; i < 36; i++) { x = side === 0 ? Math.floor(i / 6) : 5 - Math.floor(i / 6); y = [2, 3, 1, 4, 0, 5][i % 6]; if (!WX_TAC.BLOCK[self.grid[y][x]]) st.push([x, y]); }
+        self.f.filter(function (f) { return f.side === side; }).forEach(function (f) { for (var k = 0; k < st.length; k++) if (!used[st[k].join()]) { used[st[k].join()] = 1; f.pos = { x: st[k][0], y: st[k][1] }; break; } });
+      });
+      return;
+    }
     [0, 1].forEach(function (side) {
       var list = self.f.filter(function (f) { return f.side === side; }), cols = side === 0 ? [0, 1] : [5, 4], k = 0;
       list.forEach(function (f) { var ys = [2, 3, 1, 4, 0, 5]; while (k < 12) { var x = cols[Math.floor(k / 6)], y = ys[k % 6]; k++; if (!used[x + "," + y]) { used[x + "," + y] = 1; f.pos = { x: x, y: y }; break; } } });
@@ -197,7 +207,7 @@
   B.adjFoes = function (f) { return this.foes(f).filter(function (g) { return cheb(g.pos, f.pos) <= 1; }); };
   B.over = function () { var a = this.f.some(function (f) { return alive(f) && f.side === 0; }), b = this.f.some(function (f) { return alive(f) && f.side === 1; }); return !a || !b; };
   B.inZone = function (f, kind, side) { return this.zones.filter(function (z) { return (!kind || z.kind === kind) && (side == null || z.side === side) && cheb(z.c, f.pos) <= z.rad; }); };
-  B.water = function (f) { return this.terrain === "수중" || this.inZone(f, "water").some(function (z) { return z.side !== f.side || true; }); };
+  B.water = function (f) { return this.terrain === "수중" || this.cellOf(f) === "w" || this.inZone(f, "water").some(function (z) { return z.side !== f.side || true; }); };
 
   /* ── 조건 ── */
   B.cond = function (c, me, foe, atk) {
@@ -361,6 +371,10 @@
     if (fum) { ok = false; f.stun = true; }
     if (!ok && !o.isEv) f.R.missed = f.R.missed || (o.isHit ? true : false);
     this.say(f.name + " " + why + " 《" + sk + "》 " + tn + "+ → [" + ds.join(",") + "]" + (adv ? (adv > 0 ? " 유리" : " 불리") + Math.abs(adv) : "") + (o.flat ? " " + o.flat : "") + " = " + sum + (sp ? " 스페셜!" : ok ? " 성공" : " 실패") + (fum ? " · 주화입마" : ""), sp ? "sp" : fum ? "fum" : ok ? "ok" : "no");
+    /* 수중 전장·수면: 판정에 실패하면 접근전 1점(만든 쪽의 수면은 자기 편에게 듣지 않는다) */
+    if (!ok && !this._wet && alive(f) && !this.flag(f, "nowater") && (this.terrain === "수중" || this.cellOf(f) === "w" || this.inZone(f, "water").some(function (z) { return z.side !== f.side; }))) {
+      this._wet = true; this.say(f.name + " — 물에 휩쓸린다", "hit"); this.hurt(f, "접근전", 1, null); this._wet = false;
+    }
     return { ok: ok, sp: sp, fum: fum, sum: sum };
   };
 
@@ -491,7 +505,7 @@
 
   /* ── 위치 ── */
   B.free = function (x, y) { return x >= 0 && y >= 0 && x < N && y < N && !this.at(x, y) && !this.blocked(x, y); };
-  B.blocked = function (x, y) { return false; };
+  B.blocked = function (x, y) { return !!(this.grid && WX_TAC.BLOCK[this.grid[y][x]]); };
   B.shove = function (t, from, n, toward) {
     if (!alive(t) || n <= 0) return 0;
     if (this.flag(t, "immovable") || (toward && this.flag(t, "nopull"))) { this.say(t.name + "은(는) 밀리지 않는다", "dim"); return 0; }
@@ -731,6 +745,7 @@
     if (hasBuff(g, "sanct")) return false;
     if (g.hidden && !this.flag(f, "seehidden") && (!a || a.area === "one" || a.area === "upto")) return false;
     if (f.buffs.some(function (b) { return b.key === "noatkme" && b.src === g.id; })) return false;
+    if (a && this.grid && !WX_TAC.los(this.grid, f.pos, g.pos)) return false;
     return true;
   };
   B.rangeOfAtk = function (f, a, extra) {
@@ -739,6 +754,7 @@
   };
   B.inReach = function (f, a, g, extra) {
     var d = dist(f.pos, g.pos), r = this.rangeOfAtk(f, a, extra);
+    if (a.type === "사격전" && this.grid) r += WX_TAC.elev(this.grid, f.pos, g.pos);
     if (d > r) return false;
     if ((a.line || a.aline) && !inLine(f.pos, g.pos)) return false;
     if (a.area === "cross" || a.area === "crossg") return true;
@@ -840,6 +856,7 @@
     f.buffs.forEach(function (b) { if (b.key === "hdme" && b.src === main0.id) adv -= b.v; });
     if (main0.flags.hdmulti && main0.R.targeted) adv -= 1;
     if (this.zones.some(function (z) { return z.kind === "gut" && z.side !== f.side && cheb(z.c, f.pos) <= z.rad; }) && isMg(f)) adv -= 1;
+    if (a.type === "사격전" && this.grid && this.grid[main0.pos.y][main0.pos.x] === "c") adv -= 1;   /* 엄폐 */
     live.forEach(function (g) { g.R.targeted = (g.R.targeted || 0) + 1; });
     var crit = this.clauseEffs(extraCl, "crit")[0];
     var nofum = this.hasEff(a.cl.filter(function (c) { return c.trig === "X"; }), "nofum") || this.hasEff(extraCl, "nofum") || f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "nofum"; }) && self.clOk(f, cl, main0, a); });
@@ -1052,27 +1069,19 @@
     if (hasBuff(f, "immob") || f.st["빙결"]) return 0;
     var mv = this.mod(f, "mv"); if (mv < 0 && this.flag(f, "nomvdebuff")) mv = 0;
     var s = f.pow + mv - (f.st["한기"] && !f.flags.nocold ? 1 : 0);
-    if (this.terrain === "수중" && !this.flag(f, "nowater")) s -= 1;
-    if (this.inZone(f, "water").some(function (z) { return z.side !== f.side; }) && !this.flag(f, "nowater")) s -= 1;
     f.buffs.forEach(function (b) { if (b.key === "mvcap") s = Math.min(s, b.v); });
     return Math.max(0, s);
   };
   B.reachable = function (f, steps, jump) {
     if (steps == null) steps = this.moveSteps(f);
-    var seen = {}, q = [{ x: f.pos.x, y: f.pos.y, d: 0 }], out = [];
-    seen[f.pos.x + "," + f.pos.y] = 1;
-    while (q.length) {
-      var c = q.shift(); out.push({ x: c.x, y: c.y, d: c.d });
-      if (c.d >= steps) continue;
-      for (var dx = -1; dx <= 1; dx++) for (var dy = -1; dy <= 1; dy++) {
-        if (!dx && !dy) continue;
-        var nx = c.x + dx, ny = c.y + dy, k = nx + "," + ny;
-        if (nx < 0 || ny < 0 || nx >= N || ny >= N || seen[k]) continue;
-        seen[k] = 1; if (this.at(nx, ny) && !jump) continue;
-        q.push({ x: nx, y: ny, d: c.d + 1 });
-      }
-    }
-    return out.filter(function (c) { return !(c.d > 0 && false); }).filter(function (c, i) { return i === 0 || !this.at(c.x, c.y); }, this);
+    var self = this, nw = !!this.flag(f, "nowater");
+    var r = WX_TAC[jump ? "reachPass" : "reach"](this.grid, f.pos, steps, {
+      nowater: nw, occ: function (x, y) { var o = self.at(x, y); return !!o && o !== f; },
+      stop: function (x, y) { return !nw && self.zones.some(function (z) { return z.kind === "water" && z.side !== f.side && cheb(z.c, { x: x, y: y }) <= (z.rad || 0); }); }
+    });
+    var out = [{ x: f.pos.x, y: f.pos.y, d: 0 }];
+    Object.keys(r).forEach(function (k) { var p = k.split(","); if (+p[0] === f.pos.x && +p[1] === f.pos.y) return; out.push({ x: +p[0], y: +p[1], d: r[k] }); });
+    return out;
   };
   B.aiMove = function (f) {
     var plan = this.aiPlan(f, f.pow), cells = this.reachable(f), self = this, foes = this.foes(f);
@@ -1275,6 +1284,7 @@
       if (self.terrain === "극지" && !self.flag(f, "noterr") && !f.flags.nocold && d6() >= 5) { self.say(f.name + " — 극지의 추위", "hit"); self.hurt(f, "사격전", 1, null); }
       if (!alive(f)) return;
       if (f.buffs.some(function (b) { return b.key === "endst"; })) self.statusRoll(f);
+      if (alive(f) && self.cellOf(f) === "!") { self.say(f.name + " — 위험지", "hit"); self.statusRoll(f); }
       f.stun = false;
       Object.keys(f.st).forEach(function (s) {
         if (s === "행방불명" && f.gone) { delete f.st[s]; return; }
@@ -1316,7 +1326,7 @@
     for (var t = 0; t < times; t++) {
       var fs = specs.map(function (s) { var f = makeFighter(s.c, s); f.key = s.key; return f; });
       var terr = opt.terrain === "무작위" ? pick(TERRAIN) : opt.terrain;
-      var b = new Battle(fs, { terrain: terr, maxRounds: opt.maxRounds, quiet: t > 0 });
+      var b = new Battle(fs, { terrain: terr, map: pickMap(), maxRounds: opt.maxRounds, quiet: t > 0 });
       try { await b.run(); } catch (err) { res.errors++; if (window.console) console.error(err); continue; }
       if (!sample) sample = b;
       res.n++; res.win[b.winner === -1 ? 2 : b.winner]++; res.rounds += b.round;
@@ -1401,8 +1411,10 @@
     bind(view);
     if (UI.mode === "prac" && UI.practice) drawPractice();
   }
+  function pickMap() { var F = window.WX_FIELD; if (!UI.fmap || !F) return null; var s = F.setOf(UI.fmap); return s.id === UI.fmap ? F.parse(pick(s.maps).rows) : null; }
   function optsHtml() {
-    return '<div class="sim-opts"><label>전장 <select id="so-t">' + TERRAIN.concat(["무작위"]).map(function (t) { return "<option" + (t === UI.terrain ? " selected" : "") + ">" + t + "</option>"; }).join("") + "</select></label>" +
+    var F = window.WX_FIELD;
+    return '<div class="sim-opts">' + (F ? '<label>지형 <select id="so-m"><option value="">없음(빈 판)</option>' + F.sets.map(function (s) { return '<option value="' + s.id + '"' + (s.id === UI.fmap ? " selected" : "") + ">" + esc(s.n) + "</option>"; }).join("") + "</select></label>" : "") + '<label>전장 <select id="so-t">' + TERRAIN.concat(["무작위"]).map(function (t) { return "<option" + (t === UI.terrain ? " selected" : "") + ">" + t + "</option>"; }).join("") + "</select></label>" +
       '<label>최대 라운드 <input id="so-r" type="number" min="3" max="30" value="' + UI.rounds + '"></label>' +
       '<label><input id="so-k" type="checkbox"' + (RULES.killDeclare ? " checked" : "") + '> 적이 숨통 끊기를 선언 (PC가 쓰러지면 흑관문)</label>' +
       (UI.mode === "bal" ? '<label>반복 <select id="so-n">' + [100, 300, 1000].map(function (n) { return "<option" + (n === UI.times ? " selected" : "") + ">" + n + "</option>"; }).join("") + "</select>판</label>" : "") + "</div>";
@@ -1458,7 +1470,7 @@
     else if (n === "3") { for (var i = 0; i < 3; i++) { var z = A.roll({ lv: lv, group: g }); z.name = "졸개 " + (i + 1); fs.push(makeFighter(z, { side: 1, grade: "졸개" })); } }
     else for (var j = 0; j < Number(n); j++) { var rc = A.roll({ lv: lv, group: g }); rc.ougi = genOugi(rc, "무인"); fs.push(makeFighter(rc, { side: 1 })); }
     var terr = UI.terrain === "무작위" ? pick(TERRAIN) : UI.terrain;
-    var b = new Battle(fs, { terrain: terr, maxRounds: UI.rounds, onDraw: function () { drawPractice(); }, onLog: function () { drawLogOnly(); } });
+    var b = new Battle(fs, { terrain: terr, map: pickMap(), maxRounds: UI.rounds, onDraw: function () { drawPractice(); }, onLog: function () { drawLogOnly(); } });
     P.b = b; P.me = mf; UI.practice = P;
     render(A.view());
     b.run().then(function () { P.done = true; P.wait = null; drawPractice(); });
@@ -1495,7 +1507,7 @@
     }
   }
   function cellCls(b, x, y) { var f = b.at(x, y); return f ? (f.side ? "foe" : "me") : ""; }
-  function drawLogOnly() { var el = document.getElementById("sp-log"); var P = UI.practice; if (el && P) { el.innerHTML = logHtml(P.b.log.slice(-60)); el.scrollTop = el.scrollHeight; } }
+  function drawLogOnly() { var el = document.getElementById("sp-log"); var P = UI.practice; if (el && P) { el.innerHTML = logHtml(P.b.log.slice(-300)); el.scrollTop = el.scrollHeight; } }
   function drawPractice() {
     var el = document.getElementById("sim-prac"), P = UI.practice; if (!el || !P) return;
     var b = P.b, w = P.wait, me = P.me, sel = P.sel || {};
@@ -1504,12 +1516,13 @@
     var inR = {}; if (atkA) b.targetsOf(me, atkA, null).concat(b.foes(me).filter(function (g) { return b.targetsOf(me, atkA, g).indexOf(g) >= 0; })).forEach(function (g) { inR[g.id] = 1; });
     var grid = '<div class="sim-grid t-' + TERRAIN.indexOf(b.terrain) + '">';
     for (var y = 0; y < N; y++) for (var x = 0; x < N; x++) {
-      var f = b.at(x, y), k = x + "," + y, zone = b.zones.some(function (z) { return cheb(z.c, { x: x, y: y }) <= 1; });
-      grid += '<button type="button" class="cell ' + cellCls(b, x, y) + (reach[k] ? " reach" : "") + (f && inR[f.id] ? " tgt" : "") + (f && sel.tg === f.id ? " sel" : "") + (zone ? " zone" : "") + '" data-cx="' + x + '" data-cy="' + y + '"' + (f ? ' title="' + esc(f.name) + '"' : "") + ">" +
+      var f = b.at(x, y), k = x + "," + y, zone = b.zones.some(function (z) { return cheb(z.c, { x: x, y: y }) <= (z.rad == null ? 1 : z.rad); });
+      var tc = b.grid ? b.grid[y][x] : ".", tname = tc !== "." && window.WX_FIELD ? WX_FIELD.terr[tc][0] : "";
+      grid += '<button type="button" class="cell ' + cellCls(b, x, y) + (reach[k] ? " reach" : "") + (f && inR[f.id] ? " tgt" : "") + (f && sel.tg === f.id ? " sel" : "") + (zone ? " zone" : "") + (tname ? " tr tr-" + "#~cbw^v!TD=_i".indexOf(tc) : "") + '" data-cx="' + x + '" data-cy="' + y + '" title="' + esc((f ? f.name + " " : "") + (tname ? tname + " — " + WX_FIELD.terr[tc][1] : "")) + '">' + (tname ? '<span class="trn">' + esc(tname) + "</span>" : "") +
         (f ? '<span class="tok">' + esc(f.name.slice(0, 2)) + '</span><span class="hpd">' + hpLeft(f) + "</span>" : "") + "</button>";
     }
     grid += "</div>";
-    var roster = b.f.map(function (f) {
+    var roster = b.f.slice().sort(function (x, y) { return (y.pow || 0) - (x.pow || 0); }).map(function (f) {
       return '<li class="' + (f.side ? "foe" : "me") + (f.out ? " out" : "") + '"><b>' + esc(f.name) + "</b> " + esc(f.c.lv || "") + " " + (f.grade !== "무인" ? esc(f.grade) + " " : "") + "· 생명력 " + hpLeft(f) +
         (f.pool ? "" : ' <span class="hint">' + FIELDS.map(function (x) { return f.lost[x] ? "<s>" + x + "</s>" : x; }).join(" ") + (f.extra ? " +" + f.extra : "") + "</span>") +
         (f.pow ? " · 공력 " + (f.side && w && w.kind === "pow" ? "?" : f.pow) : "") + (Object.keys(f.st).length ? " · 〔" + Object.keys(f.st).join("·") + "〕" : "") + (f.stun ? " · 주화입마" : "") + Object.keys(f.mk || {}).map(function (k) { return " · " + k + " " + f.mk[k]; }).join("") + (f.dead ? " · 사망" : "") + "</li>";
@@ -1523,13 +1536,16 @@
     else if (w.kind === "turn") {
       var budget = b.budget(me);
       var atks = me.attacks.map(function (a, i) {
-        var sk = bestSkill(me, a.sk), tn = tnOf(me, sk), dis = a.cost > budget || tn >= 99 || me.st["내상"] === a.name || (a.uses && (me.B.names[a.name] || 0) >= a.uses) || (a.needmv && (me.R.moved || 0) < a.needmv) || me.R.atk;
-        return '<label class="pick' + (dis ? " off" : "") + '"><input type="radio" name="sp-a" value="' + i + '"' + (sel.atk === i ? " checked" : "") + (dis ? " disabled" : "") + '><span><span class="nm">' + esc(a.name) + '</span> <span class="hint">《' + esc(sk) + "》 " + (tn >= 99 ? "—" : tn + "+") + " · 간격 " + b.rangeOfAtk(me, a) + " · 코스트 " + a.cost + " · " + esc(a.type) + (a.type === "집단전" ? "" : " " + a.dmg) + (a.area !== "one" ? " · 여럿" : "") + "</span></span></label>";
+        var sk = bestSkill(me, a.sk), tn = tnOf(me, sk);
+        var why = me.R.atk ? "이미 공격함" : a.cost > budget ? "코스트 부족" : tn >= 99 ? "판정할 수 없음" : me.st["내상"] === a.name ? "내상" : (a.uses && (me.B.names[a.name] || 0) >= a.uses) ? "횟수를 다 씀" : (a.needmv && (me.R.moved || 0) < a.needmv) ? "이동이 모자람" : "", dis = !!why;
+        return '<label class="pick' + (dis ? " off" : "") + '"><input type="radio" name="sp-a" value="' + i + '"' + (sel.atk === i ? " checked" : "") + (dis ? " disabled" : "") + '><span><span class="nm">' + esc(a.name) + '</span> <span class="hint">《' + esc(sk) + "》 " + (tn >= 99 ? "—" : tn + "+") + " · 간격 " + b.rangeOfAtk(me, a) + " · 코스트 " + a.cost + " · " + esc(a.type) + (a.type === "집단전" ? "" : " " + a.dmg) + (a.area !== "one" ? " · 여럿" : "") + (why ? " · <b>" + why + "</b>" : "") + "</span></span></label>";
       }).join("");
       var sups = me.supports.map(function (s, i) { if (s.trig !== "H" || !b.clOk(me, s.cl, null, atkA)) return ""; return '<label class="hint"><input type="checkbox" data-sup="' + i + '"' + ((sel.sup || []).indexOf(i) >= 0 ? " checked" : "") + "> 명중 직전 보조 " + esc(s.n) + " (코스트 " + s.cost + ")</label>"; }).join(" ");
       var tsups = me.supports.map(function (s, i) { if (s.trig !== "T" || !b.limOk(me, s.cl)) return ""; return '<label class="hint"><input type="checkbox" data-tsup="' + i + '"' + ((sel.tsup || []).indexOf(i) >= 0 ? " checked" : "") + "> 턴 보조 " + esc(s.n) + " (코스트 " + s.cost + ")</label>"; }).join(" ");
       var ogs = me.ougi.filter(function (o) { return b.ougiOk(me, o); }).map(function (o) { var k = ogKind(o); if (k === "guard" || k === "counter") return ""; return '<label class="hint"><input type="checkbox" data-og="' + o.i + '"' + ((sel.og || []).indexOf(o.i) >= 0 ? " checked" : "") + "> 오의 「" + esc(o.name) + "」 " + esc(o.form) + ((o.mods || []).length ? " · " + esc(o.mods.join("·")) : "") + "</label>"; }).join(" ");
-      ctl = "<p><b>내 턴</b> — 공력 " + me.pow + " · 남은 코스트 " + budget + '. 무공을 고르고 판에서 대상을 누르세요.</p><div class="picker sp-atks">' + atks + "</div>" + (sups.trim() ? "<div>" + sups + "</div>" : "") + (tsups.trim() ? "<div>" + tsups + '</div><p class="hint">턴 보조는 공격 전에 씁니다. 적에게 거는 것은 판에서 고른 대상(없으면 가장 가까운 적)에게 갑니다.</p>' : "") + (ogs ? "<div>" + ogs + '</div><p class="hint">흡성은 판에서 고른 대상(2칸 안)에게 씁니다.</p>' : "") +
+      ctl = "<p><b>내 턴</b> — 공력 " + me.pow + " · 남은 코스트 " + budget + '. 무공을 고르고 판에서 대상을 누르세요.</p><div class="picker sp-atks">' + atks + "</div>" +
+        (atkA && A.find(atkA.name) && A.find(atkA.name).e ? '<p class="hint sp-eff"><b>' + esc(atkA.name) + "</b> " + esc(A.find(atkA.name).e) + "</p>" : "") +
+        (function () { var eq = (me.c.mg || []).map(function (n) { return A.find(n); }).filter(function (r) { return r && r.t === "장비"; }); return eq.length ? '<details class="hint"><summary>내 장비 무공 ' + eq.length + "개(늘 켜져 있음)</summary>" + eq.map(function (r) { return "<p><b>" + esc(r.n) + "</b> " + esc(r.e || "") + "</p>"; }).join("") + "</details>" : ""; })() + (sups.trim() ? "<div>" + sups + "</div>" : "") + (tsups.trim() ? "<div>" + tsups + '</div><p class="hint">턴 보조는 공격 전에 씁니다. 적에게 거는 것은 판에서 고른 대상(없으면 가장 가까운 적)에게 갑니다.</p>' : "") + (ogs ? "<div>" + ogs + '</div><p class="hint">흡성은 판에서 고른 대상(2칸 안)에게 씁니다.</p>' : "") +
         '<div class="sheet-actions"><button class="btn primary small" type="button" id="sp-act">실행</button><button class="btn small" type="button" id="sp-pass">턴 넘기기</button></div>';
     }
     el.innerHTML = '<div class="sim-prac"><div>' + grid + '<p class="hint">전장: ' + esc(b.terrain) + " · " + b.round + '라운드</p></div><div><ul class="sim-roster">' + roster + "</ul>" + ctl + '</div></div><div class="sim-log2" id="sp-log"></div>' +
@@ -1577,6 +1593,7 @@
   function $(s) { return document.querySelector(s); }
   function bind(view) {
     view.querySelectorAll("[data-smode]").forEach(function (b) { b.onclick = function () { UI.mode = b.dataset.smode; render(view); }; });
+    var fm = $("#so-m"); if (fm) fm.onchange = function () { UI.fmap = fm.value; };
     var t = $("#so-t"); if (t) t.onchange = function () { UI.terrain = t.value; saveSides(); };
     var kd = $("#so-k"); if (kd) kd.onchange = function () { RULES.killDeclare = kd.checked; };
     var r = $("#so-r"); if (r) r.onchange = function () { UI.rounds = Math.max(3, Math.min(30, Number(r.value) || 15)); saveSides(); };

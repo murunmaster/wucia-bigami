@@ -791,3 +791,7 @@ details.lore-d[open] > summary::before { content: "－ "; }
 .bd-life input { flex: 1; min-width: 6em; font: inherit; padding: 3px 6px; }
 .bd-eff { white-space: pre-wrap; }
 @media (max-width: 860px) { .bd { grid-template-columns: 1fr; } }
+.sim-grid .cell .trn{position:absolute;left:2px;bottom:1px;font-size:.6rem;color:#3d382f;pointer-events:none}
+.sim-grid .cell.tr-0,.sim-grid .cell.tr-11{background:#57504a}.sim-grid .cell.tr-0 .trn,.sim-grid .cell.tr-11 .trn{color:#fff}
+.sim-grid .cell.tr-1{background:#cfc6b4}.sim-grid .cell.tr-2{background:#d9c9a8}.sim-grid .cell.tr-3{background:#bcd3a6}.sim-grid .cell.tr-4{background:#a9c8dc}.sim-grid .cell.tr-5{background:#efe2b8}.sim-grid .cell.tr-6{background:#b9b2a4}.sim-grid .cell.tr-7{background:#e6b9a0}.sim-grid .cell.tr-12{background:#dcecf4}
+.sp-eff{white-space:pre-wrap}
