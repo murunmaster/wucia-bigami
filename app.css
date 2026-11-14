@@ -795,3 +795,12 @@ details.lore-d[open] > summary::before { content: "－ "; }
 .sim-grid .cell.tr-0,.sim-grid .cell.tr-11{background:#57504a}.sim-grid .cell.tr-0 .trn,.sim-grid .cell.tr-11 .trn{color:#fff}
 .sim-grid .cell.tr-1{background:#cfc6b4}.sim-grid .cell.tr-2{background:#d9c9a8}.sim-grid .cell.tr-3{background:#bcd3a6}.sim-grid .cell.tr-4{background:#a9c8dc}.sim-grid .cell.tr-5{background:#efe2b8}.sim-grid .cell.tr-6{background:#b9b2a4}.sim-grid .cell.tr-7{background:#e6b9a0}.sim-grid .cell.tr-12{background:#dcecf4}
 .sp-eff{white-space:pre-wrap}
+
+/* 전투판 2판 */
+.bd-guide { margin: 8px 0; padding: 8px 12px; border: 1px solid var(--ink); border-radius: 6px; background: var(--paper); font-weight: 600; }
+.bd-row.now { border-color: #2c7a51; box-shadow: inset 3px 0 0 #2c7a51; }
+.bd-row.dim, .bd-skb.dim { opacity: .55; }
+.bd-x { font: inherit; font-size: .85em; border: 0; background: none; color: inherit; cursor: pointer; padding: 0 3px; text-decoration: underline; }
+.bd-skb .bd-eff { display: block; margin-top: 4px; font-size: .9em; }
+.bd-pend { border-color: #a8322d; }
+.bd-box ol.hint { padding-left: 1.2em; margin: 6px 0 0; }

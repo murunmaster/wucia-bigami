@@ -210,7 +210,7 @@
         (fight ? fld("에너미", '<textarea data-dgf="z.foes" rows="3">' + e(z.foes || "") + "</textarea>", "wide") : "") +
         (fight && f ? '<div class="gm-bar">' + fld("전장도 묶음", '<select data-dgf="z.f">' + opts([""].concat(f.sets.map(function (s) { return s.id; })), z.f || "", ["정하지 않음"].concat(f.sets.map(function (s) { return s.n; }))) + "</select>") +
           (set && set.id === z.f ? fld("묶음의 맵", '<select data-dgf="z.pick">' + opts(["", "0", "1", "2"].slice(0, set.maps.length + 1), "", ["골라서 넣기"].concat(set.maps.map(function (m) { return m.n; }))) + "</select>") + '<button type="button" class="btn small" data-dg="genmap">무작위 맵</button>' : "") +
-          (mp ? '<button type="button" class="btn small" data-dg="png">PNG 저장</button>' : "") + "</div>" +
+          (mp ? '<button type="button" class="btn small" data-dg="png">PNG 저장</button><button type="button" class="btn small primary" data-dg="board">이 구역으로 전투판 열기</button>' : "") + "</div>" +
           fld("전용 맵 코드(6줄 × 6글자. 비우면 묶음의 첫 맵)", '<textarea data-dgf="z.m" rows="6" class="dg-code" spellcheck="false">' + e((z.m || []).join("\n")) + "</textarea>", "wide") +
           (mp ? '<div class="dg-thumb">' + f.svg(mp, set || f.sets[0], { titles: true }) + "</div>" : "") +
           '<p class="hint">맵을 칸 단위로 고치려면 <a href="#map-f' + (z.f ? "-" + e(z.f) : "") + '">전장도</a>에서 고친 뒤 \'맵 코드 복사\'로 가져와 붙여 넣으세요(저장을 먼저 하세요).</p>' : "") +
@@ -355,6 +355,7 @@
     else if (act === "addlink" && fl && fl.zones.length > 1) { fl.links.push([ST.z || fl.zones[0].id, fl.zones[fl.zones[0].id === ST.z ? 1 : fl.zones.length - 1].id, "road"]); touch(); }
     else if (act === "dellink" && fl) { fl.links.splice(+arg, 1); touch(); }
     else if (act === "genmap" && z && F()) { z.m = F().toRows(F().generate(F().setOf(z.f))); touch(); }
+    else if (act === "board" && z && F() && window.WX_BOARD) { var mb = mapOf(z); if (mb) WX_BOARD.open({ n: zi.z.n + " · " + z.n, set: z.f || "cave", rows: F().toRows(mb), memo: [z.foes ? "에너미: " + z.foes : "", z.e || ""].filter(Boolean).join(" / ").slice(0, 600) }); return true; }
     else if (act === "png" && z && F()) { var mp = mapOf(z); if (mp) F().savePng(mp, F().setOf(z.f || "cave"), zi.z.n + "-" + z.n, true); return true; }
     else if (act === "md") { var txt = toMd(key); (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { ST.msg = "문서(마크다운)로 복사했어요"; CTX.redraw(); }, function () { ST.msg = "복사하지 못했어요"; CTX.redraw(); }); return true; }
     else if (act === "save") {

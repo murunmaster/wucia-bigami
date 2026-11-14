@@ -176,7 +176,7 @@
       '<div class="fld-board" id="fld-board">' + svg(UI.m, set, { titles: true }) + "</div>" +
       (connected(UI.m) ? "" : '<p class="hint bad">두 진영의 시작 칸이 서로 닿지 않아요. 장애물이나 낭떠러지를 줄여 주세요.</p>') +
       (UI.memo ? '<p class="hint">' + esc(UI.memo) + "</p>" : "") +
-      '<div class="sheet-actions"><button type="button" class="btn small primary" id="fld-png">PNG 저장</button><button type="button" class="btn small" id="fld-png2">PNG 저장(그림만)</button><button type="button" class="btn small" id="fld-code">맵 코드 복사</button><button type="button" class="btn small" id="fld-keep">내 맵에 담기</button></div>' +
+      '<div class="sheet-actions"><button type="button" class="btn small primary" id="fld-png">PNG 저장</button><button type="button" class="btn small" id="fld-png2">PNG 저장(그림만)</button><button type="button" class="btn small" id="fld-code">맵 코드 복사</button><button type="button" class="btn small" id="fld-keep">내 맵에 담기</button><button type="button" class="btn small" id="fld-board">이 맵으로 전투판 열기</button></div>' +
       '<p class="hint">코코포리아: 그림을 방의 전경(前景)으로 넣고 가로·세로 칸 수를 같게 맞추면 격자 6×6이 그대로 맞습니다. 갑·을은 두 진영의 시작 칸입니다.</p>' +
       '<h3>이 맵의 지형</h3><dl class="fld-legend">' + Object.keys(TERR).filter(function (k) { return used[k] && k !== "."; }).map(function (k) { return "<dt>" + esc(TERR[k][0]) + (k === "!" && set.maps[UI.idx] && set.maps[UI.idx].hazard ? " (" + esc(set.maps[UI.idx].hazard) + ")" : "") + "</dt><dd>" + esc(TERR[k][1]) + "</dd>"; }).join("") + "</dl>" +
       "</section></div>";
@@ -200,6 +200,7 @@
       else { drop(m.a); drop(m.b); m.g[y][x] = m.g[y][x] === UI.brush ? "." : UI.brush; }
       UI.idx = -1; again();
     };
+    view.querySelector("#fld-board").onclick = function () { if (window.WX_BOARD) WX_BOARD.open({ n: UI.name || set.n, set: set.id, rows: toRows(UI.m) }); };
     view.querySelector("#fld-png").onclick = function () { savePng(UI.m, set, UI.name, true); };
     view.querySelector("#fld-png2").onclick = function () { savePng(UI.m, set, UI.name, false); };
     view.querySelector("#fld-code").onclick = function () { var t = toRows(UI.m).join("\n"); (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { api.toast("맵 코드를 복사했어요"); }, function () { api.toast("복사하지 못했어요"); }); };
