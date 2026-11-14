@@ -145,6 +145,16 @@
     });
     return s.replace("</svg>", o + "</svg>");
   }
+  /* 이번 라운드 상태(무공 조건 셈용): 옮긴 칸, 맞음, 맞힌 대상, 기세·표식 */
+  function rstate(k) {
+    var o = [];
+    if (k.mc) o.push("이동 " + k.mc + "칸");
+    if (k.rh) o.push("맞음(" + k.rh + ")");
+    if (k.rt && k.rt.length) o.push("맞힘 " + k.rt.join("·"));
+    if (k.ks) o.push("기세 " + k.ks);
+    if (k.pm) o.push("표식 " + k.pm);
+    return o.length ? " · " + o.join(" · ") : "";
+  }
   function opt(list, cur, labels) { return list.map(function (v, i) { return '<option value="' + e(v) + '"' + (String(v) === String(cur) ? " selected" : "") + ">" + e(labels ? labels[i] : v) + "</option>"; }).join(""); }
   function guide() {
     if (!ME.id) return "구경 중입니다. 구글로 로그인하면 참가할 수 있어요.";
@@ -208,7 +218,7 @@
     var ord = live.slice().sort(function (a, b) { return plot ? (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) : (b.g || 0) - (a.g || 0); });
     h += '<div class="bd-box"><b>' + (plot ? "말" : "행동 순서") + '</b><div class="bd-ord">' + (ord.map(function (k) {
       var gtxt = plot ? (k.gs ? (ctrl(k) ? "공력 " + k.g : "정함") : "아직") : "공력 " + (k.g || "–");
-      return '<button type="button" class="bd-row' + (k.id === SEL ? " on" : "") + (myTurn(k) ? " now" : "") + (!alive(k) || k.dn ? " dim" : "") + '" data-sel="' + e(k.id) + '"><span class="bd-dot ' + (k.s === "B" ? "b" : "a") + '"></span>' + e(k.n) + " <small>" + gtxt + " · ♥" + lifeLeft(k) + (myTurn(k) ? " · 지금 차례" : k.dn && !plot ? " · 마침" : "") + (k.stun ? " · 주화입마" : "") + ((k.sts || []).length ? " · " + e(k.sts.join("·")) : "") + (k.mk ? " · 마기 " + k.mk : "") + (k.st ? " · " + e(k.st) : "") + "</small></button>";
+      return '<button type="button" class="bd-row' + (k.id === SEL ? " on" : "") + (myTurn(k) ? " now" : "") + (!alive(k) || k.dn ? " dim" : "") + '" data-sel="' + e(k.id) + '"><span class="bd-dot ' + (k.s === "B" ? "b" : "a") + '"></span>' + e(k.n) + " <small>" + gtxt + " · ♥" + lifeLeft(k) + (myTurn(k) ? " · 지금 차례" : k.dn && !plot ? " · 마침" : "") + rstate(k) + (k.stun ? " · 주화입마" : "") + ((k.sts || []).length ? " · " + e(k.sts.join("·")) : "") + (k.mk ? " · 마기 " + k.mk : "") + (k.st ? " · " + e(k.st) : "") + "</small></button>";
     }).join("") || '<span class="hint">아직 말이 없어요.</span>') + (gone.length ? '<p class="hint">판을 떠남: ' + gone.map(function (k) { return e(k.n + "(" + k.out + ")"); }).join(", ") + "</p>" : "") + "</div></div>";
     if (t) {
       var can = ctrl(t), left = (t.g || 0) - (t.used || 0), g = shown(), ter = f.terr[g[t.y][t.x]];
@@ -296,7 +306,7 @@
       var tb = tok(p.b), rest = pd.filter(function (x) { return x !== p; }); if (!tb) { up({ pd: rest }); return; }
       if (act === "pdx") { if (isGm()) say("【" + p.mn + "】 없던 일로", "sys", { pd: rest }, "판"); return; }
       if (!ctrl(tb)) return;
-      var hit = function (pre, stun) { var u = { pd: rest }; if (stun) u["tk." + tb.id + ".stun"] = true; if (p.dm) u["tk." + tb.id + ".dq"] = (tb.dq || []).concat([{ ty: p.dm.ty, n: p.dm.n, mn: p.mn, g: p.g, r: p.r, sim: !!p.sim }]); say(pre + " — 맞음: 【" + p.mn + "】 " + p.e, "bad", u, tb.n); };
+      var hit = function (pre, stun) { var u = { pd: rest }, ta = tok(p.a); if (stun) u["tk." + tb.id + ".stun"] = true; u["tk." + tb.id + ".rh"] = ta ? ta.n : (p.mn || "?"); if (ta) u["tk." + ta.id + ".rt"] = (ta.rt || []).concat([tb.n]); /* 라운드 상태: 맞음·맞힘 */ if (p.dm) u["tk." + tb.id + ".dq"] = (tb.dq || []).concat([{ ty: p.dm.ty, n: p.dm.n, mn: p.mn, g: p.g, r: p.r, sim: !!p.sim }]); say(pre + " — 맞음: 【" + p.mn + "】 " + p.e, "bad", u, tb.n); };
       var line = R.phase === "plot" ? 0 : stunLine(tb);
       if (act === "nododge") { hit("회피하지 않음"); return; }
       if (act === "flee") { var jf = judge(TN(tb, "신법"), line, !tb.c); if (jf.ok) { var u2 = U(tb.id, { out: "도주" }); u2.pd = rest.filter(function (x) { return x.b !== tb.id; }); say("도주 《신법》 " + jf.txt + " — 전투에서 벗어난다(전과 없음)", "ok", u2, tb.n); } else hit("도주 《신법》 " + jf.txt, jf.stun); return; }
@@ -328,7 +338,7 @@
     }
   }
   function moveTo(t, x, y, cost, free) {
-    var gr = grid(), ch = gr[y][x], u = U(t.id, { x: x, y: y, mv: (t.mv || 0) + cost, px: free ? null : t.x, py: free ? null : t.y, pmv: t.mv || 0 }), msg = "", trap = ch === "T" && !free;
+    var gr = grid(), ch = gr[y][x], u = U(t.id, { x: x, y: y, mv: (t.mv || 0) + cost, mc: (t.mc || 0) + (free ? 0 : Math.max(Math.abs(x - t.x), Math.abs(y - t.y))), pmc: t.mc || 0, px: free ? null : t.x, py: free ? null : t.y, pmv: t.mv || 0 }), msg = "", trap = ch === "T" && !free;
     if (trap) { u.rows = setCell(x, y, "."); u["tk." + t.id + ".mv"] = t.g || 0; u["tk." + t.id + ".dq"] = (t.dq || []).concat([{ ty: "집단전", n: 1, mn: "함정", r: R.round, g: 0 }]); u["tk." + t.id + ".px"] = null; msg = "함정을 밟았다! 이동이 끝나고 집단전을 받는다"; }
     else if (ch !== "." && ch !== "T" && !free) msg = "→ " + F().terr[ch][0] + " 칸" + (ch === "w" ? "(이동 끝)" : "");
     if (DB.runTransaction && FV()) {
@@ -385,7 +395,7 @@
       (R.tmp || []).forEach(function (c) { if (c.until <= R.round) rows = rows.map(function (r, i) { return i === c.y ? r.slice(0, c.x) + c.was + r.slice(c.x + 1) : r; }); else keep.push(c); });
       if ((R.tmp || []).length) { un.rows = rows; un.tmp = keep; }
       toks().forEach(function (k) {
-        var p = { g: 0, gs: false, used: 0, mv: 0, dn: false, atk: false, stun: false, px: null }, dq = (k.dq || []).slice();
+        var p = { g: 0, gs: false, used: 0, mv: 0, mc: 0, rh: null, rt: [], dn: false, atk: false, stun: false, px: null }, dq = (k.dq || []).slice();
         if (alive(k)) {
           if (g[k.y][k.x] === "!") { dq.push({ ty: "집단전", n: 1, mn: "위험지", r: R.round + 1, g: 0 }); notes.push(k.n + " 위험지(집단전)"); }
           if (R.ter === "극지") { var c6 = d6(); if (c6 >= 5) { dq.push({ ty: "사격전", n: 1, mn: "극지", r: R.round + 1, g: 0 }); notes.push(k.n + " 극지 굴림 " + c6 + "(사격전 1점)"); } }
@@ -416,7 +426,7 @@
     if (!t || !ctrl(t)) return;
     if (act === "move") { MODE = MODE && MODE.type === "move" ? null : { type: "move" }; draw(true); }
     else if (act === "place") { MODE = MODE && MODE.type === "place" ? null : { type: "place" }; INFO = "옮길 칸을 누르세요(비용 없음)."; draw(true); }
-    else if (act === "undo" && t.px != null) { up(U(t.id, { x: t.px, y: t.py, mv: t.pmv || 0, px: null })); }
+    else if (act === "undo" && t.px != null) { up(U(t.id, { x: t.px, y: t.py, mv: t.pmv || 0, mc: t.pmc || 0, px: null })); }
     else if (act === "done") { MODE = null; commit(t, { dn: true }, R.phase === "move" ? "" : "턴 마침", "sys"); }
     else if (act === "useself" && MODE && MODE.type === "skill") useSkill(t, MODE.r, []);
     else if (act === "usemulti" && MODE && MODE.type === "skill") { var tg = (MODE.tg || []).map(tok).filter(Boolean); if (!tg.length) { toast("대상을 고르세요"); return; } useSkill(t, MODE.r, tg); }
