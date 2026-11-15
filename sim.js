@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -381,7 +381,7 @@
 
   /* ── 버프·상태이상 ── */
   var POS_KEYS = { powhi: 1, predall: 1, rage: 1, ha: 1, ea: 1, dm: 1, dr: 1, hd: 1, cl: 1, mv: 1, all: 1, r: 1, immovable: 1, immunest: 1, nostun: 1, sanct: 1, blur: 1, negc: 1, negall: 1, yoka: 1, fury: 1, both: 1, graze: 1, lostok: 1, twoatk: 1, nomvdebuff: 1, first: 1 };
-  var BUFF_KEYS = "ha ea ed hd dm dr r cl mv all cure fum cost exp vuln vulnr mark hdme immob mvcap noatk nosup noougi noequip noatkfld noatkme taunt sanct blur negc negall immunest immovable nostun lostok yoka fury both graze noevb nomvdebuff first endst nohide noheal powcap drunk twoatk curse keepmk rage nowater predall powhi".split(" ");
+  var BUFF_KEYS = "palsunplus ha ea ed hd dm dr r cl mv all cure fum cost exp vuln vulnr mark hdme immob mvcap noatk nosup noougi noequip noatkfld noatkme taunt sanct blur negc negall immunest immovable nostun lostok yoka fury both graze noevb nomvdebuff first endst nohide noheal powcap drunk twoatk curse keepmk rage nowater predall powhi".split(" ");
   var BUFFS = {}; BUFF_KEYS.forEach(function (k) { BUFFS[k] = 1; });
   B.addBuff = function (t, e, owner, dflt) {
     if (!alive(t)) return;
@@ -490,6 +490,8 @@
   };
   B.ko = function (f) {
     if (f.out) return;
+    var emk = null; f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "endmk") emk = e; }); }); /* 개방 신걸아불사공: 표식이 차 있으면 한 번 버틴다 */
+    if (emk && !f.used.endmk) { var eq = String(emk.arg).split(":"); if ((f.mk[eq[0]] || 0) >= Number(eq[1] || 3)) { f.used.endmk = 1; delete f.mk[eq[0]]; var efl = FIELDS.filter(function (x) { return f.lost[x]; })[0]; if (efl && !f.pool) delete f.lost[efl]; else if (f.pool) f.pool = 1; this.say(f.name + " — " + eq[0] + "를 모두 쓰고 쓰러지지 않는다 (생명력 1)", "og"); return; } }
     if (f.flags.endure && !f.used.endure) { f.used.endure = 1; var fl = FIELDS.filter(function (x) { return f.lost[x]; })[0]; if (fl && !f.pool) delete f.lost[fl]; else if (f.pool) f.pool = 1; this.say(f.name + " — 쓰러지지 않고 버틴다 (생명력 1)", "og"); return; }
     if (f.flags.lastround && !f.used.lastround) { f.used.lastround = 1; f.dying = true; this.say(f.name + " — 생명력 0이지만 라운드가 끝날 때까지 싸운다", "og"); return; }
     if (this.f.some(function (g) { return alive(g) && g !== f && g.side === f.side && g.st && g.zoneSave; })) { }
@@ -830,6 +832,30 @@
     a._sk = sk;
     /* X 절의 자기 효과(쓸 때) */
     a.cl.filter(function (cl) { return cl.trig === "X" && self.clOk(f, cl, tgts[0], a); }).forEach(function (cl) { cl.effs.forEach(function (e) { if (e.who === "self") self.applyEff(e, f, f, { atk: a }, 1); if (e.key === "selfhurt" || e.key === "pay") self.applyEff(e, f, f, { atk: a }); }); });
+    /* 개방 팔선 주사위: 취기를 쓰고 1D6을 굴려 신선 효과를 고른다(AI는 4>6>1>5>2>3) */
+    a._ps3 = false;
+    var psE = this.clauseEffs(a.cl.filter(function (cl) { return cl.trig === "X" && self.clOk(f, cl, tgts[0], a); }), "palsun")[0];
+    if (psE) {
+      var psHave = f.mk["취기"] || 0, psN = 0, psAll = psE.arg === "all";
+      if (psAll) { psN = psHave; delete f.mk["취기"]; }
+      else if (psHave > 0) { psN = 1 + (/화경|현경/.test((f.c && f.c.lv) || "") ? 1 : 0) + (hasBuff(f, "palsunplus") ? 1 : 0) + (psHave >= 3 && f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "palsunplus"; }); }) ? 1 : 0); if (psHave > 1) f.mk["취기"] = psHave - 1; else delete f.mk["취기"]; }
+      if (psN) {
+        var psR = []; for (var pi = 0; pi < psN; pi++) psR.push(d6());
+        var psU = psR.filter(function (v, i2) { return psR.indexOf(v) === i2; }), psPref = [4, 6, 1, 5, 2, 3];
+        var psTake = psAll ? psU : psPref.filter(function (v) { return psU.indexOf(v) >= 0; }).slice(0, hasBuff(f, "palsunplus") ? 2 : 1);
+        var PSN = { 1: "철괴리", 2: "한종리", 3: "장과로", 4: "여동빈", 5: "하선고", 6: "조국구" }, psCl = { id: "palsun", effs: [], conds: [] };
+        psTake.forEach(function (v) {
+          if (v === 4) psCl.effs.push({ key: "dm", v: 1 });
+          if (v === 1) psCl.effs.push({ key: "hit", arg: "immob~2" });
+          if (v === 2) psCl.effs.push({ key: "hit", arg: "push2" });
+          if (v === 6) psCl.effs.push({ key: "hit", arg: "ea-1~2#1" });
+          if (v === 5) f.buffs.push({ key: "ea", v: 1, left: 2, uses: 1 });
+          if (v === 3) a._ps3 = true;
+        });
+        extraCl = extraCl.concat([psCl]);
+        this.say(f.name + " — 팔선 주사위 [" + psR.join(",") + "] → " + psTake.map(function (v) { return PSN[v]; }).join("·"), "dim");
+      }
+    }
     var tn0 = tgts[0];
     /* 표적이 된 쪽의 대응(E 중 명중 전에 쓰는 것) */
     var live = [];
@@ -913,6 +939,7 @@
     }
     /* 공격이 끝난 뒤 */
     if (this.hasEff(a.cl, "posthide") && !this.adjFoes(f).length) { f.hidden = 2; this.say(f.name + " 은신", "dim"); }
+    if (a._ps3 && !f.ctrl && alive(f)) this.stepAway(f, 2); /* 팔선 장과로 */
     var pm = this.clauseEffs(a.cl.filter(function (c) { return c.trig === "X"; }), "postmv")[0]; if (pm && !f.ctrl) this.stepAway(f, pm.v || 1);
   };
   B.markAtk = function (f, a) {

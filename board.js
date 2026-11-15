@@ -78,6 +78,22 @@
     if (t.c) (t.c.mg || []).forEach(function (n) { var r = A().find(n); if (r && r.n) out.push(r); });
     return out;
   }
+  /* 개방 취기: 취권을 익힌 말은 기세 칸을 취기로 쓴다(최대 3). 팔선 주사위·비틀거림·털어 내기·신걸아불사공을 판이 챙긴다 */
+  function knows(t, n) { return !!(t && t.c && (t.c.mg || []).some(function (x) { return String(x).indexOf(n) === 0; })); }
+  function drunk(t) { return knows(t, "취권"); }
+  function ksName(t) { return drunk(t) ? "취기" : "기세"; }
+  function dreaming(t) { return !!t.dream && R.round - t.dream <= 1; }
+  function stagger(t) { return drunk(t) && (t.ks || 0) >= 3 && !knows(t, "주중선") && !dreaming(t); }
+  var PALSUN = ["철괴리: 대상은 다음 라운드 종료까지 이동할 수 없다", "한종리: 대상을 자신에게서 먼 쪽으로 2칸 밀어낸다", "장과로: 공격 뒤 자신이 빈 칸을 따라 2칸까지 옮긴다(빗나가도)", "여동빈: 대미지 +1", "하선고: 다음 라운드 종료까지 자신의 회피 판정 1번에 유리점 1(빗나가도)", "조국구: 대상은 다음 라운드 종료까지 회피 판정에 불리점 1"];
+  function rollPalsun(n, how) { var rs = [], i; for (i = 0; i < n; i++) rs.push(d6()); return "팔선 주사위 [" + rs.join(",") + "] " + how + " — " + rs.filter(function (v, k) { return rs.indexOf(v) === k; }).sort().map(function (v) { return v + " " + PALSUN[v - 1]; }).join(" / "); }
+  /* 신걸아불사공: 생명력이 0이 되었을 때 취기가 3이면 취기를 모두 쓰고 생명력 1로 일어선다(전투당 1번) */
+  function bulsa(t, o, u) {
+    var left = o.life ? o.life.filter(Boolean).length + (o.ex || 0) : (o.hp || 0);
+    if (left > 0 || !knows(t, "신걸아불사공") || (t.ks || 0) < 3 || t.bs) return "";
+    if (o.life) { var lost = []; o.life.forEach(function (v, i) { if (!v) lost.push(i); }); o.life[lost[Math.floor(Math.random() * lost.length)]] = 1; } else o.hp = 1;
+    u["tk." + t.id + ".ks"] = 0; u["tk." + t.id + ".bs"] = true;
+    return " — 신걸아불사공: 취기 3을 모두 쓰고 일어선다(♥1)";
+  }
   function ougiOf(t) {
     var c = null;
     if (t.cid && t.o === ME.id) c = pcList().filter(function (x) { return x.id === t.cid; })[0];
@@ -103,8 +119,26 @@
     }
     if (t.stun) { toast("주화입마라 이번 라운드에는 판정할 수 없어요"); return; }
     var sk = r.sk && r.sk !== "—" ? r.sk : "", g = grid(), cover = targets.length === 1 && /사격전/.test(r.e || "") && g[targets[0].y][targets[0].x] === "c";
-    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, cover ? -1 : 0) : { ok: true, txt: "" };
+    var ks0 = t.ks || 0, ksN = ks0, dmx = 0, dmsg = "", stg = r.t === "공격" && stagger(t), nm = bare(r.n), re = r.e || "";
+    if (drunk(t)) {
+      if (nm === "팔선과해") { if (ks0) { ksN = 0; dmsg += " · 취기 " + ks0 + " 모두 → " + rollPalsun(ks0, "(나온 효과를 모두 받는다, 같은 눈은 한 번)"); } }
+      else if (/팔선 주사위/.test(re) && r.t === "공격") { if (ks0) { ksN = ks0 - 1; dmsg += " · 취기 1 → " + rollPalsun(1 + (/화경|현경/.test(t.c.lv || "") ? 1 : 0) + (ks0 >= 3 && knows(t, "주중선") ? 1 : 0) + (dreaming(t) ? 1 : 0), dreaming(t) ? "(둘을 고른다)" : "(하나를 고른다)"); } }
+      else if (/취기를 모두 (털어 낸다|털어 내고|쓴다|쓰고)/.test(re) && r.t !== "장비") {
+        ksN = 0;
+        if (ks0) { var cap = /털어 낸 취기마다 대미지 \+1\(최대 \+(\d)\)/.exec(re); if (cap) dmx = Math.min(+cap[1], ks0); else if (/(털어 낸 취기가 있으면|털어 내고) 대미지 \+1/.test(re)) dmx = 1; dmsg += " · 취기 " + ks0 + " 털어 냄" + (dmx ? "(대미지 +" + dmx + ")" : ""); }
+      }
+      else if (nm === "호로주") { ksN = Math.min(3, ks0 + 1); dmsg += " · 취기 " + ksN; }
+      else if (nm === "취생몽사") { ksN = 3; dmsg += " · 취기 3. 다음 라운드 종료까지 비틀거리지 않고 팔선 주사위를 1개 더 굴려 둘을 고른다"; }
+      else if (nm === "홍점어륙") { if (ks0) { ksN = ks0 - 1; dmsg += " · 취기 1 씀('자리 옮기기'로 2칸, 적이 선 칸을 건너뛸 수 있다)"; } }
+      else if (nm === "혹약재연") { var want = window.prompt ? parseInt(window.prompt("취기를 몇으로 할까요? (0~3)", String(ks0)), 10) : ks0; if (!(want >= 0 && want <= 3)) want = ks0; ksN = want; dmsg += " · 취기 " + ks0 + " → " + ksN; }
+      else if (nm === "신룡파미") { ksN = Math.min(3, ks0 + 1); dmsg += " · 취기 " + ksN + (ks0 >= 3 ? " (취기 3이었으니 대미지 +1)" : ""); }
+    }
+    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, (cover ? -1 : 0) + (stg ? -1 : 0)) : { ok: true, txt: "" };
     var dm = r.t === "공격" ? dmgOf(r, j.sp) : null, u = U(t.id, { used: (t.used || 0) + (FREE || pre ? 0 : cost) }), pd = (R.pd || []).slice();
+    if (dm && dmx && dm.ty !== "집단전") dm = { ty: dm.ty, n: dm.n + dmx };
+    if (ksN !== ks0) u["tk." + t.id + ".ks"] = ksN;
+    if (nm === "취생몽사" && drunk(t)) u["tk." + t.id + ".dream"] = R.round;
+    if (nm === "취팔선보" && drunk(t)) u["tk." + t.id + ".jp"] = R.round;
     var msg = "【" + bare(r.n) + "】" + (targets.length ? " → " + targets.map(function (b) { return b.n; }).join(", ") : "") + (cover ? " (엄폐: 불리점 1)" : "") + (sk ? " 《" + sk + "》 " + j.txt : j.txt ? " " + j.txt : "");
     if (r.t === "공격") { u["tk." + t.id + ".atk"] = true; if (t.dth) u["tk." + t.id + ".out"] = "사망"; }
     if (j.stun) u["tk." + t.id + ".stun"] = true;
@@ -114,6 +148,9 @@
       targets.forEach(function (b) { pd.push({ i: Math.random().toString(36).slice(2, 8), a: t.id, b: b.id, sk: sk, mn: bare(r.n), e: r.e || "", dm: dm, g: R.cur || 0, r: R.round, sim: sim }); });
       u.pd = pd; if (j.sp && dm && dm.ty !== "집단전") msg += " (스페셜: 대미지 +1)";
     } else if (j.ok !== false && r.e) msg += " — " + r.e;
+    if (stg) msg += " (비틀거림: 불리점 1)";
+    msg += dmsg;
+    if (r.t === "공격") targets.forEach(function (b) { var bb = tok(b.id) || b; if (drunk(bb) && bb.jr !== R.round && (bb.ks || 0) < 3) { u["tk." + bb.id + ".ks"] = (bb.ks || 0) + 1; u["tk." + bb.id + ".jr"] = R.round; msg += " · " + bb.n + " 취기 " + ((bb.ks || 0) + 1) + "(공격의 대상)"; } });
     MODE = null; say(msg, j.ok === false ? "bad" : "act", u, t.n);
   }
 
@@ -151,7 +188,8 @@
     if (k.mc) o.push("이동 " + k.mc + "칸");
     if (k.rh) o.push("맞음(" + k.rh + ")");
     if (k.rt && k.rt.length) o.push("맞힘 " + k.rt.join("·"));
-    if (k.ks) o.push("기세 " + k.ks);
+    if (k.ks) o.push(ksName(k) + " " + k.ks);
+    if (stagger(k)) o.push("비틀거림");
     if (k.pm) o.push("표식 " + k.pm);
     return o.length ? " · " + o.join(" · ") : "";
   }
@@ -231,7 +269,7 @@
         h += t.life ? '<div class="bd-life" role="group" aria-label="생명력">' + LIFE.map(function (n, i) { return '<button class="chip' + (t.life[i] ? " on" : "") + '" data-life="' + i + '">' + n + "</button>"; }).join("") + ' <span>추가 <button class="btn small" data-b="ex-">−</button> ' + (t.ex || 0) + ' <button class="btn small" data-b="ex+">+</button></span></div>'
           : '<div class="bd-life">생명력 <button class="btn small" data-b="hp-">−</button> ' + (t.hp || 0) + ' <button class="btn small" data-b="hp+">+</button></div>';
         h += '<div class="bd-life">' + (t.sts || []).map(function (s) { return '<span class="chip on">' + e(s) + ' <button class="bd-x" data-b="cure" data-s="' + e(s) + '" title="해제 판정">《' + e(CURE[s] || "") + '》</button><button class="bd-x" data-b="stx" data-s="' + e(s) + '" aria-label="' + e(s) + ' 떼기">×</button></span>'; }).join("") + '<select data-f="addst" aria-label="상태이상 붙이기"><option value="">+ 상태이상</option>' + opt(STS, "") + '</select><button class="btn small" data-b="stroll">상태이상표</button></div>';
-        h += '<div class="bd-life">마기 <button class="btn small" data-b="mk-">−</button>' + (t.mk || 0) + '<button class="btn small" data-b="mk+">+</button> 기세 <button class="btn small" data-b="ks-">−</button>' + (t.ks || 0) + '<button class="btn small" data-b="ks+">+</button> 표식 <button class="btn small" data-b="pm-">−</button>' + (t.pm || 0) + '<button class="btn small" data-b="pm+">+</button></div>';
+        h += '<div class="bd-life">마기 <button class="btn small" data-b="mk-">−</button>' + (t.mk || 0) + '<button class="btn small" data-b="mk+">+</button> ' + ksName(t) + ' <button class="btn small" data-b="ks-">−</button>' + (t.ks || 0) + '<button class="btn small" data-b="ks+">+</button> 표식 <button class="btn small" data-b="pm-">−</button>' + (t.pm || 0) + '<button class="btn small" data-b="pm+">+</button></div>';
         h += '<div class="bd-life"><input data-f="st" value="' + e(t.st || "") + '" placeholder="메모" aria-label="메모"></div>';
         h += '<div class="gm-bar"><select data-f="adv" aria-label="유리점·불리점">' + opt([2, 1, 0, -1, -2], ADV, ["유리점 2", "유리점 1", "보통", "불리점 1", "불리점 2"]) + '</select><select data-f="mod" aria-label="수정치">' + opt([3, 2, 1, 0, -1, -2, -3], MOD, ["+3", "+2", "+1", "수정 없음", "−1", "−2", "−3"]) + '</select><label class="hint"><input type="checkbox" data-f="multi"' + (MULTI ? " checked" : "") + '> 여럿 고르기</label><label class="hint"><input type="checkbox" data-f="free"' + (FREE ? " checked" : "") + "> 제한 풀기(밀기·당기기·추가 행동)</label></div>" +
           '<p class="hint">유리점·수정치는 다음 판정 한 번에만 듭니다. 엄폐·고소·악지·고지·분지는 저절로 계산돼요.</p>';
@@ -311,7 +349,7 @@
       if (act === "nododge") { hit("회피하지 않음"); return; }
       if (act === "flee") { var jf = judge(TN(tb, "신법"), line, !tb.c); if (jf.ok) { var u2 = U(tb.id, { out: "도주" }); u2.pd = rest.filter(function (x) { return x.b !== tb.id; }); say("도주 《신법》 " + jf.txt + " — 전투에서 벗어난다(전과 없음)", "ok", u2, tb.n); } else hit("도주 《신법》 " + jf.txt, jf.stun); return; }
       var j = judge(TN(tb, p.sk), line, !tb.c, R.ter === "고소" ? -2 : 0), head = "회피" + (p.sk ? " 《" + p.sk + "》 " : " ") + j.txt;
-      if (j.ok) { say(head, "ok", { pd: rest }, tb.n); return; }
+      if (j.ok) { var uo = { pd: rest }; if (drunk(tb) && tb.jp === R.round) { uo["tk." + tb.id + ".ks"] = Math.min(3, (tb.ks || 0) + 1); uo["tk." + tb.id + ".jp"] = 0; head += " · 취팔선보: 취기 " + Math.min(3, (tb.ks || 0) + 1); } say(head, "ok", uo, tb.n); return; }
       if (j.ok === null) { say(head + " — 맞았다면 '그냥 맞기'를 누르세요", "", {}, tb.n); return; }
       hit(head, j.stun); return;
     }
@@ -324,17 +362,19 @@
     if (act === "dq-x") { dq.shift(); say("대미지를 받지 않음(" + it.ty + ")", "sys", U(t.id, { dq: dq }), t.n); }
     else if (act === "dq-less") { if (it.n > 1) dq[0] = Object.assign({}, it, { n: it.n - 1 }); else dq.shift(); say("대미지 1점 경감", "sys", U(t.id, { dq: dq }), t.n); }
     else if (act === "dq-st") { var s6 = d6(), st = STS[s6 - 1], sts = (t.sts || []).slice(); if (sts.indexOf(st) < 0) sts.push(st); dq.shift(); say("집단전 — 상태이상표 " + s6 + ": " + st + " (《" + CURE[st] + "》 판정으로 해제)", "bad", U(t.id, { dq: dq, sts: sts }), t.n); }
-    else if (act === "dq-hp") { dq.shift(); var hp = Math.max(0, (t.hp || 0) - it.n); say(it.ty + " " + it.n + "점 — 생명력 " + hp, "bad", U(t.id, { dq: dq, hp: hp }), t.n); }
+    else if (act === "dq-hp") { dq.shift(); var oh = { hp: Math.max(0, (t.hp || 0) - it.n) }, uh = {}, nh = bulsa(t, oh, uh); say(it.ty + " " + it.n + "점 — 생명력 " + oh.hp + nh, "bad", U(t.id, { dq: dq, hp: oh.hp }, uh), t.n); }
     else if (act === "dq-roll") {
       var life = t.life.slice(), ex = t.ex || 0, pick = 0, out = [];
       for (var i = 0; i < it.n; i++) { var d = d6(); if (life[d - 1]) { life[d - 1] = 0; out.push(d + " " + LIFE[d - 1]); } else { pick++; out.push(d + " " + LIFE[d - 1] + "(이미 잃음 → 고르기)"); } }
       if (pick && (life.some(Boolean) || ex > 0)) dq[0] = { ty: "사격전", n: pick, mn: it.mn, g: it.g, r: it.r }; else dq.shift();
-      say("접근전 " + it.n + "점 — 1D6: " + out.join(", ") + " (♥" + (life.filter(Boolean).length + ex) + ")", "bad", U(t.id, { dq: dq, life: life, ex: ex }), t.n);
+      var ol = { life: life, ex: ex }, ul = {}, nl = bulsa(t, ol, ul); if (nl) dq = [];
+      say("접근전 " + it.n + "점 — 1D6: " + out.join(", ") + " (♥" + (life.filter(Boolean).length + ex) + ")" + nl, "bad", U(t.id, { dq: dq, life: life, ex: ex }, ul), t.n);
     }
     else if (act === "dq-pick") {
       var idx = +b.dataset.i, life2 = t.life.slice(), ex2 = t.ex || 0, nm; if (idx < 0) { ex2--; nm = "추가 생명력"; } else { life2[idx] = 0; nm = LIFE[idx]; }
       if (it.n > 1 && (life2.some(Boolean) || ex2 > 0)) dq[0] = Object.assign({}, it, { n: it.n - 1 }); else dq.shift();
-      say(it.ty + " — " + nm + " 상실 (♥" + (life2.filter(Boolean).length + ex2) + ")", "bad", U(t.id, { dq: dq, life: life2, ex: ex2 }), t.n);
+      var op = { life: life2, ex: ex2 }, up2 = {}, np = bulsa(t, op, up2); if (np) dq = [];
+      say(it.ty + " — " + nm + " 상실 (♥" + (life2.filter(Boolean).length + ex2) + ")" + np, "bad", U(t.id, { dq: dq, life: life2, ex: ex2 }, up2), t.n);
     }
   }
   function moveTo(t, x, y, cost, free) {
