@@ -139,6 +139,11 @@
     if (ksN !== ks0) u["tk." + t.id + ".ks"] = ksN;
     if (nm === "취생몽사" && drunk(t)) u["tk." + t.id + ".dream"] = R.round;
     if (nm === "취팔선보" && drunk(t)) u["tk." + t.id + ".jp"] = R.round;
+    if (t.c && t.c.school === "요왕장" && (nm === "요화" || nm === "백귀야행" || nm === "본상현형")) { /* 요화 모습: 여우·범·구렁이 */
+      var yf = nm === "본상현형" ? "여우·범·구렁이" : (window.prompt ? window.prompt("어느 모습으로 요화할까요? (여우·범·구렁이)", t.yf && t.yf.length < 4 ? t.yf : "범") : "범");
+      if (!/^(여우|범|구렁이|여우·범·구렁이)$/.test(yf || "")) yf = "범";
+      u["tk." + t.id + ".yf"] = yf; u["tk." + t.id + ".yr"] = R.round; dmsg += " · 요화: " + yf;
+    }
     var msg = "【" + bare(r.n) + "】" + (targets.length ? " → " + targets.map(function (b) { return b.n; }).join(", ") : "") + (cover ? " (엄폐: 불리점 1)" : "") + (sk ? " 《" + sk + "》 " + j.txt : j.txt ? " " + j.txt : "");
     if (r.t === "공격") { u["tk." + t.id + ".atk"] = true; if (t.dth) u["tk." + t.id + ".out"] = "사망"; }
     if (j.stun) u["tk." + t.id + ".stun"] = true;
@@ -190,6 +195,10 @@
     if (k.rt && k.rt.length) o.push("맞힘 " + k.rt.join("·"));
     if (k.ks) o.push(ksName(k) + " " + k.ks);
     if (stagger(k)) o.push("비틀거림");
+    var sch = k.c && k.c.school, hl = lifeLeft(k);
+    if (sch === "하북팽가" && hl > 0 && hl <= 4) o.push("혈기 " + (hl <= 2 ? "3단" : hl <= 3 ? "2단" : "1단")); /* 생명력 4·3·2 이하 */
+    if (sch === "북원" && (k.mc || 0) >= 3) o.push("말 달림(마세)"); /* 3칸 이상 이동한 라운드 */
+    if (sch === "요왕장" && k.yf && R.round - (k.yr || 0) <= 1) o.push("요화: " + k.yf); /* 다음 라운드 종료까지 */
     if (k.pm) o.push("표식 " + k.pm);
     return o.length ? " · " + o.join(" · ") : "";
   }

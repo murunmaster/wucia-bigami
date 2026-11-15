@@ -1339,7 +1339,7 @@
   };
   B.run = async function () {
     var self0 = this;
-    this.f.forEach(function (f) { if (f.c && f.c.school === "표국") f.mk["종자"] = 1; }); /* 표물(종자) */
+    this.f.forEach(function (f) { if (f.c && (f.c.school === "표국" || f.c.school === "군마녹림")) f.mk["종자"] = 1; }); /* 표물(종자) */
     this.f.forEach(function (f) { f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "startmk") self0.applyEff({ key: "mk", arg: e.arg, v: 1 }, f, f, {}); }); }); });
     this.f.forEach(function (f) { if (f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "starthide"; }); }) && !self0.adjFoes(f).length) { f.hidden = 2; } });
     this.f.forEach(function (f) { if (f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "starttraitor"; }); })) { var tg = self0.foes(f)[0]; if (tg) self0.applyEff({ key: "traitor", v: 1 }, f, tg, {}); } });
