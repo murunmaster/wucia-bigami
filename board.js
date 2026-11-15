@@ -81,7 +81,7 @@
   /* 개방 취기: 취권을 익힌 말은 기세 칸을 취기로 쓴다(최대 3). 팔선 주사위·비틀거림·털어 내기·신걸아불사공을 판이 챙긴다 */
   function knows(t, n) { return !!(t && t.c && (t.c.mg || []).some(function (x) { return String(x).indexOf(n) === 0; })); }
   function drunk(t) { return knows(t, "취권"); }
-  function ksName(t) { return drunk(t) ? "취기" : "기세"; }
+  function ksName(t) { return drunk(t) ? "취기" : knows(t, "신칼") ? "신명" : "기세"; }
   function dreaming(t) { return !!t.dream && R.round - t.dream <= 1; }
   function stagger(t) { return drunk(t) && (t.ks || 0) >= 3 && !knows(t, "주중선") && !dreaming(t); }
   var PALSUN = ["철괴리: 대상은 다음 라운드 종료까지 이동할 수 없다", "한종리: 대상을 자신에게서 먼 쪽으로 2칸 밀어낸다", "장과로: 공격 뒤 자신이 빈 칸을 따라 2칸까지 옮긴다(빗나가도)", "여동빈: 대미지 +1", "하선고: 다음 라운드 종료까지 자신의 회피 판정 1번에 유리점 1(빗나가도)", "조국구: 대상은 다음 라운드 종료까지 회피 판정에 불리점 1"];
@@ -120,6 +120,11 @@
     if (t.stun) { toast("주화입마라 이번 라운드에는 판정할 수 없어요"); return; }
     var sk = r.sk && r.sk !== "—" ? r.sk : "", g = grid(), cover = targets.length === 1 && /사격전/.test(r.e || "") && g[targets[0].y][targets[0].x] === "c";
     var ks0 = t.ks || 0, ksN = ks0, dmx = 0, dmsg = "", stg = r.t === "공격" && stagger(t), nm = bare(r.n), re = r.e || "";
+    if (knows(t, "신칼") && /^거리\./.test(re)) { /* 해동 굿거리: 바로 앞 거리와 다르면 신명 1 */
+      if (t.lg !== nm) { ksN = Math.min(3, ks0 + 1); dmsg += " · 신명 " + ksN; } else dmsg += " · 같은 거리라 신이 오르지 않는다";
+      if (nm === "대동굿") { ksN = 3; dmsg = " · 신명 3"; }
+    }
+    if (knows(t, "신칼") && /신명을 모두 쓴다/.test(re) && ks0) { ksN = 0; var dx = Math.min(2, ks0); if (r.t === "공격") dmx = dx; dmsg += " · 신명 " + ks0 + " 모두 씀(대미지 +" + dx + ")"; }
     if (drunk(t)) {
       if (nm === "팔선과해") { if (ks0) { ksN = 0; dmsg += " · 취기 " + ks0 + " 모두 → " + rollPalsun(ks0, "(나온 효과를 모두 받는다, 같은 눈은 한 번)"); } }
       else if (/팔선 주사위/.test(re) && r.t === "공격") { if (ks0) { ksN = ks0 - 1; dmsg += " · 취기 1 → " + rollPalsun(1 + (/화경|현경/.test(t.c.lv || "") ? 1 : 0) + (ks0 >= 3 && knows(t, "주중선") ? 1 : 0) + (dreaming(t) ? 1 : 0), dreaming(t) ? "(둘을 고른다)" : "(하나를 고른다)"); } }
@@ -139,6 +144,7 @@
     if (ksN !== ks0) u["tk." + t.id + ".ks"] = ksN;
     if (nm === "취생몽사" && drunk(t)) u["tk." + t.id + ".dream"] = R.round;
     if (nm === "취팔선보" && drunk(t)) u["tk." + t.id + ".jp"] = R.round;
+    if (knows(t, "신칼") && /^거리\./.test(re)) u["tk." + t.id + ".lg"] = nm;
     if (t.c && t.c.school === "요왕장" && (nm === "요화" || nm === "백귀야행" || nm === "본상현형")) { /* 요화 모습: 여우·범·구렁이 */
       var yf = nm === "본상현형" ? "여우·범·구렁이" : (window.prompt ? window.prompt("어느 모습으로 요화할까요? (여우·범·구렁이)", t.yf && t.yf.length < 4 ? t.yf : "범") : "범");
       if (!/^(여우|범|구렁이|여우·범·구렁이)$/.test(yf || "")) yf = "범";

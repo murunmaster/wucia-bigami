@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -804,6 +804,7 @@
     if (!sk || sk === "—") { this.limUse(f, s.cl); return true; }
     var r = this.check(f, sk, 0, "보조 " + s.n + (why ? "(" + why + ")" : ""));
     if (r.ok) this.limUse(f, s.cl);
+    if (r.ok && s.cl.effs.some(function (e) { return e.key === "geori"; })) { if (f._lg !== s.n) this.applyEff({ key: "mk", arg: "신명", v: 1 }, f, f, {}); f._lg = s.n; } /* 해동 굿거리: 앞 거리와 다르면 신명 */
     return r.ok;
   };
   B.budget = function (f) { return f.pow + this.mod(f, "cl") - f.spent + (f.bankNow || 0); };
