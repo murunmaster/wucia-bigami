@@ -83,7 +83,7 @@ window.WX_MAP = {
     { id: "dongyeong", name: "동영", group: "세외", at: [136.00, 35.30], where: "바다 건너 섬나라", approx: true },
     { id: "seoyeok", name: "서역", group: "세외", at: [71.60, 40.30], where: "땅 끝 너머 색목인의 땅 (서쪽 바깥)", approx: true },
     { id: "cheonchuk", name: "천축", group: "세외", at: [82.00, 24.00], where: "천축국", approx: true },
-    { id: "haedong", name: "해동", group: "세외", at: [129.60, 41.80], where: "해동 함경도 경성 북병영", place: "haedong" },
+    { id: "haedong", name: "해동", group: "세외", at: [126.55, 37.97], where: "해동 개성 덕물산 장군당", place: "haedong" },
     { id: "bugwon", name: "북원", group: "세외", at: [102.83, 47.20], where: "몽골 초원 화림(카라코룸)", place: "karakorum" }
   ],
   /* 지도에 한 점으로 찍지 않는 세력 */
