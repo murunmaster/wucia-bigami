@@ -1102,7 +1102,7 @@ var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 /* 예전에 만든 캐릭터에도 새 칸을 채운다 */
 var BASIC_ATK = "접근전 공격";
 /* 무공 이름 판: mkVer가 WX_MK_VER보다 낮으면 익힌 무공 이름을 지금 이름으로 옮긴다(rulefix.js WX_RENAME_ALL) */
-function mkUp(c) { var V = window.WX_MK_VER || 0; if ((c.mkVer || 0) >= V || !window.WX_RENAME_MG) return false; var r = WX_RENAME_MG(c.mg); c.mg = r.list; c.mkVer = V; return r.changed; }
+function mkUp(c) { var V = window.WX_MK_VER || 0; if ((c.mkVer || 0) >= V || !window.WX_RENAME_MG) return false; var r = WX_RENAME_MG(c.mg, c.mkVer || 0); c.mg = r.list; c.mkVer = V; return r.changed; }
 /* 오의 판: ogVer 2 = 2차 개편(옛 6형태 + 새 4형태), 3 = 옛 6형태 폐지(새 4형태만).
    2 → 3은 지우지 않고 새 형태로 옮긴다(rulefix.js WX_OG). 그보다 옛것은 지운다. */
 var OG_VER = 3;

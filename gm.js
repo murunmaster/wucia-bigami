@@ -98,7 +98,7 @@
       var ch = false;
       if ((c.ougi || []).length) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || "")); if (r.changed) { c.ougi = r.list; c.ogVer = 3; ch = true; } }
       /* 무공 이름 바꾸기(11-08 2차): 익힌 무공 이름을 지금 이름으로 */
-      if (window.WX_RENAME_MG && (c.mkVer || 0) < (window.WX_MK_VER || 0)) { var q = WX_RENAME_MG(c.mg); c.mg = q.list; c.mkVer = window.WX_MK_VER; ch = true; }
+      if (window.WX_RENAME_MG && (c.mkVer || 0) < (window.WX_MK_VER || 0)) { var q = WX_RENAME_MG(c.mg, c.mkVer || 0); c.mg = q.list; c.mkVer = window.WX_MK_VER; ch = true; }
       if (!ch) return;
       n0++;
       DB.collection(COL_N).doc(n.id).update({ sheet: str ? JSON.stringify(c) : c }).catch(function () { });
