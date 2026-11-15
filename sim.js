@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -305,6 +305,13 @@
     if (c === "hurtby") return !!foe && (!!me.R.hurtBy[F.id] || !!me.last.hurtBy && !!me.last.hurtBy[F.id]);
     if (c === "hurtbyb") return !!foe && !!me.B.hurtBy[F.id];
     if (c === "tdealt") return !!foe && !!me.B.dealtTo[F.id];
+    if (c === "atkme") return !!foe && !!me.B.evd && !!me.B.evd[F.id]; /* 낭인 간파: 이번 전투에 내가 그 공격을 피한 적 */
+    if (c === "top") return !this.f.some(function (g) { return g !== me && alive(g) && g.pow >= me.pow; }); /* 교주궁 군림: 공력이 홀로 가장 높다 */
+    if (c === "zonemine") return this.zones.some(function (z) { return z.side === me.side && cheb(z.c, P) <= z.rad; }); /* 제갈: 아군의 진 안 */
+    if (c === "tzonemine") return !!foe && this.zones.some(function (z) { return z.side === me.side && cheb(z.c, fp) <= z.rad; });
+    if (c === "sm") return !!me.R.sm; /* 해동 신명: 이번 라운드에 앞과 다른 거리를 썼다 */
+    if (c === "lastsm") return !!me.last.sm;
+    if (c === "sm2") return !!me.R.sm && (!!me.last.sm || !!me.R.smx); /* 신내림: 직전 라운드에도 신명 */
     if (c === "tevaded") return !!foe && !!me.R.evaded && !!me.R.evaded[F.id];
     if (c === "tmissed") return !!foe && !!F.R.missed;
     if ((m = /^tcost(\d+)$/.exec(c))) return !!foe && F.spent >= Number(m[1]);
@@ -568,6 +575,8 @@
       case "steal": var bi = t.buffs.findIndex(function (b) { return POS_KEYS[b.key] && b.v > 0; }); if (bi >= 0) { var sb = t.buffs.splice(bi, 1)[0]; owner.buffs.push(Object.assign({}, sb, { src: owner.id })); this.say(owner.name + " — " + t.name + "의 기세를 빼앗는다", "dim"); } return;
       case "unyoka": t.buffs = t.buffs.filter(function (b) { return b.key !== "yoka"; }); return;
       case "bloodhit": var bt = e.arg.charAt(0) === "c" ? "접근전" : "사격전", bn = num(e.arg, 1); if (t.mk["혈인"]) { t.mk["혈인"]--; if (!t.mk["혈인"]) delete t.mk["혈인"]; this.hurt(t, bt, bn, owner); } else if (hpLeft(owner) > 3) { this.hurt(owner, "사격전", 1, null, { noreduce: true }); this.hurt(t, bt, bn, owner); } return;
+      case "seenall": this.foes(owner).forEach(function (g) { owner.B.evd = owner.B.evd || {}; owner.B.evd[g.id] = 1; }); return;
+      case "smset": owner.R.sm = true; owner.R.smx = true; owner.R.smx2 = true; return;
       case "bloodpay": if (t.mk["혈인"]) { t.mk["혈인"]--; if (!t.mk["혈인"]) delete t.mk["혈인"]; } else this.hurt(owner, "사격전", 1, null, { noreduce: true }); return;
       case "mkclr": if (t.mk[e.arg]) { this.say(t.name + " — " + e.arg + "을(를) 떨군다", "dim"); delete t.mk[e.arg]; } return;
       case "mkpop": var pp = e.arg.split(":"), pn = t.mk[pp[0]] || 0; if (pn) { delete t.mk[pp[0]]; this.say(t.name + " — " + pp[0] + " " + pn + "송이를 떨군다", "og"); this.hurt(t, pp[1] === "c" ? "접근전" : "사격전", pn, owner); } return;
@@ -804,7 +813,7 @@
     if (!sk || sk === "—") { this.limUse(f, s.cl); return true; }
     var r = this.check(f, sk, 0, "보조 " + s.n + (why ? "(" + why + ")" : ""));
     if (r.ok) this.limUse(f, s.cl);
-    if (r.ok && s.cl.effs.some(function (e) { return e.key === "geori"; })) { if (f._lg !== s.n) this.applyEff({ key: "mk", arg: "신명", v: 1 }, f, f, {}); f._lg = s.n; } /* 해동 굿거리: 앞 거리와 다르면 신명 */
+    if (r.ok && s.cl.effs.some(function (e) { return e.key === "geori"; })) { if (f._lg !== s.n) f.R.sm = true; f._lg = s.n; } /* 해동 굿거리: 앞 거리와 다르면 신명 */
     return r.ok;
   };
   B.budget = function (f) { return f.pow + this.mod(f, "cl") - f.spent + (f.bankNow || 0); };
@@ -975,7 +984,7 @@
     if (r.ok && this.hasEff(a.cl, "evtwice")) { var r2 = this.check(t, esk, adv, "회피(두 번째)", { flat: flat, foe: f, atk: a, isEv: true }); r.ok = r2.ok; }
     if (r.ok) { var fr = f.passive.filter(function (cl) { return cl.effs.some(function (e) { return e.key === "forcereev"; }) && self.clOk(f, cl, t, a); })[0]; if (fr) { this.limUse(f, fr); var r3 = this.check(t, esk, adv, "회피(다시)", { flat: flat, foe: f, atk: a, isEv: true }); r.ok = r3.ok; } }
     if (r.ok) {
-      t.R.evaded = t.R.evaded || {}; t.R.evaded[f.id] = 1;
+      t.R.evaded = t.R.evaded || {}; t.R.evaded[f.id] = 1; t.B.evd = t.B.evd || {}; t.B.evd[f.id] = 1;
       esup.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "onev" && (!e.sub || self.cond(e.sub, t, f, a))) self.applyEff(parseEff(e.arg), t, f, { atk: a }); if (e.who === "self" && e.key !== "ea") self.applyEff(e, t, t, { atk: a }); }); });
       this.afterEvade(t, f, a);
     }
@@ -1238,7 +1247,7 @@
     this.round++;
     var self = this, live = this.f.filter(alive);
     this.say("── " + this.round + "라운드 ──", "rd");
-    live.forEach(function (f) { f.last.hurtBy = f.R.hurtBy; f.last.atk = !!f.last.atkNow; f.last.atkNow = false; f.R = { hurtBy: {} }; f.spent = 0; f.stun = false; f.gone = false; f.bankNow = f.bankNext || 0; f.bankNext = 0; if (f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "predict"; }); })) { var pf = self.foes(f).sort(function (a, b) { return dist(a.pos, f.pos) - dist(b.pos, f.pos); })[0]; var pw = f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "predwide"; }); }); f.R.pred = {}; if (pf && Math.random() < (pw ? 0.7 : 0.55)) f.R.pred[pf.id] = true; } self.adjFoes(f).forEach(function (g) { (f.B.adjSeen = f.B.adjSeen || {})[g.id] = 1; }); });
+    live.forEach(function (f) { f.last.sm = !!f.R.sm || !!f.R.smx2; f.last.hurtBy = f.R.hurtBy; f.last.atk = !!f.last.atkNow; f.last.atkNow = false; f.R = { hurtBy: {} }; f.spent = 0; f.stun = false; f.gone = false; f.bankNow = f.bankNext || 0; f.bankNext = 0; if (f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "predict"; }); })) { var pf = self.foes(f).sort(function (a, b) { return dist(a.pos, f.pos) - dist(b.pos, f.pos); })[0]; var pw = f.passive.some(function (cl) { return cl.effs.some(function (e) { return e.key === "predwide"; }); }); f.R.pred = {}; if (pf && Math.random() < (pw ? 0.75 : 0.6)) f.R.pred[pf.id] = true; } self.adjFoes(f).forEach(function (g) { (f.B.adjSeen = f.B.adjSeen || {})[g.id] = 1; }); });
     var mobPow = null;
     for (var i = 0; i < live.length; i++) {
       var f = live[i];
