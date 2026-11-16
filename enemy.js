@@ -142,7 +142,7 @@
       if (HAVE.indexOf(x.id) >= 0 || names[x.n]) return;
       var u = null;
       if (x.trait) { var i = x.trait.indexOf(":"); u = i > 0 && i < 20 ? { n: x.trait.slice(0, i).trim(), e: x.trait.slice(i + 1).trim() } : { n: "특징", e: x.trait }; }
-      CAT.push({ id: x.id, set: x.g === "마계" ? "마계의 흔한 것들" : (x.g || "그 밖"), n: x.n, kind: x.kind || "", grade: x.grade, lv: x.lv,
+      CAT.push({ id: x.id, set: x.set || (/원말/.test(x.ref || "") ? "원말의 흔적" : x.g === "마계" ? "마계의 흔한 것들" : (x.g || "그 밖")), n: x.n, kind: x.kind || "", grade: x.grade, lv: x.lv,
         hp: x.grade === "이물" ? (x.hpPc ? { b: Number(x.hp) || 8, p: x.hpPc } : Number(x.hp) || 4) : undefined, tn: x.tn ? Number(x.tn) : undefined, hpNote: x.hpNote || "", extraThreat: x.threatAdd || 0,
         uniq: u, abil: x.abil || [], mg: [x.mg, x.og].filter(Boolean).join(". "), loot: x.loot || "", lore: x.lore || "", gm: [x.gm, x.how].filter(Boolean).join(" ") });
     });

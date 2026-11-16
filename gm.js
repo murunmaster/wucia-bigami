@@ -65,7 +65,7 @@
       GM.dg = all.filter(isDg);
       if (window.WX_DG) WX_DG.sync(dgCtx());
       GM.gibo = all.filter(function (d) { return !isDg(d); }).sort(function (a, b) { return (a.no || 0) - (b.no || 0); });
-      if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; migrateGiboD(); }
+      if (!s.metadata.fromCache) { GM.giboReady = true; clearTimeout(t); GM.err = ""; migrateGiboD(); addSeedGibo(); }
       redraw();
     }, function (err) { clearTimeout(t); GM.err = "기보 자료를 읽지 못했어요 (" + (err && err.code || "오류") + ")."; redraw(); });
     db.collection(COL_N).onSnapshot(function (s) {
@@ -122,8 +122,29 @@
       var d = JSON.parse(JSON.stringify(a)); delete d.id;
       col.doc(a.id).set(d).catch(function () { }); n0++;
     });
+    (A.memo || []).forEach(function (m) {
+      GM.npc.forEach(function (n) { if (n.n === m.n && String(n.memo || "").indexOf(m.key) < 0) { col.doc(n.id).update({ memo: ((n.memo || "") + " " + m.add).trim() }).catch(function () { }); } });
+    });
     try { localStorage.setItem(mk, JSON.stringify(done)); } catch (x) { }
     if (n0 && window.toast) toast("강호사 NPC " + n0 + "명을 서고에 넣었어요");
+  }
+  /* 기보도 같은 방식: WX_GIBO_ADD.add(새 기보), memo(이미 있는 기보 메모에 한 줄 덧붙이기, key가 이미 들어 있으면 건너뜀) */
+  var giboSeedDone = false;
+  function addSeedGibo() {
+    var A = window.WX_GIBO_ADD; if (giboSeedDone || !A || !DB) return; giboSeedDone = true;
+    var mk = "wx-gibo-add-" + KEY, done = {};
+    try { done = JSON.parse(localStorage.getItem(mk) || "{}"); } catch (x) { }
+    var col = DB.collection(COL_G), n0 = 0;
+    (A.add || []).forEach(function (a) {
+      if (done[a.id]) return; done[a.id] = 1;
+      if (GM.gibo.some(function (g) { return g.id === a.id || g.n === a.n; })) return;
+      var d = JSON.parse(JSON.stringify(a)); delete d.id; col.doc(a.id).set(d).catch(function () { }); n0++;
+    });
+    (A.memo || []).forEach(function (m) {
+      GM.gibo.forEach(function (g) { if (g.n === m.n && String(g.memo || "").indexOf(m.key) < 0) { col.doc(g.id).update({ memo: ((g.memo || "") + " " + m.add).trim() }).catch(function () { }); } });
+    });
+    try { localStorage.setItem(mk, JSON.stringify(done)); } catch (x) { }
+    if (n0 && window.toast) toast("기보 " + n0 + "개를 서고에 넣었어요");
   }
   /* 비밀번호를 확인하고 연다. 저장소에 기보가 하나라도 있으면 맞는 비밀번호다 */
   function tryKey(db, key) {
