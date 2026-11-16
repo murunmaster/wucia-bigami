@@ -18,6 +18,7 @@ var SITE = {
   nav: {
     home: ["산문", "山門", "처음 화면"],
     rules: ["율령", "律令", "룰북 — 규칙 전문을 페이지별로"],
+    lore: ["세계관", "世界觀", "강호사 — 시대별·문파별 역사와 인물"],
     map: ["강호도", "江湖圖", "지도 — 성·명산·문파 소재지"],
     mugong: ["무공록", "武功錄", "무공 검색"],
     background: ["내력", "來歷", "배경 장점·단점 검색"],
@@ -25,7 +26,7 @@ var SITE = {
     mods: ["오의첩", "奧義帖", "오의 개조 강점·약점"],
     builder: ["인물지", "人物志", "캐릭터 만들기"],
     inn: ["객잔", "客棧", "방명록"],
-    gm: ["GM 서고", "書庫", "GM 전용 — 기보·NPC·던전 관리"]
+    gm: ["GM 서고", "書庫", "GM 전용 — 기보·NPC·던전·에너미 관리"]
   },
   inn: {
     lead: "길손이여, 잔 하나 비우고 한 줄 남기고 가시게.",
@@ -146,6 +147,7 @@ function route() {
   else if (fld) WX_FIELD.render(view, full.slice(6));
   else if (brd) WX_BOARD.render(view, full.slice(6));
   else if (h === "map") renderMap(full);
+  else if (h === "lore") { if (window.renderLore) renderLore(full, view); else renderEmpty(); }
   else if (h === "gm") { if (window.renderGM) renderGM(); else renderEmpty(); }
   else if (!hasData) renderEmpty();
   else if (h === "rules") renderRules(full);

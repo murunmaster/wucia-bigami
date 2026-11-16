@@ -175,7 +175,7 @@
   function drawTabs() {
     var tabs = q("#gm-tabs"); if (!tabs) return;
     var dgCount = maps().reduce(function (n, m) { return n + m.zones.filter(function (z) { return z.dg; }).length; }, 0);
-    tabs.innerHTML = [["gibo", "기보", GM.gibo.length], ["npc", "NPC", GM.npc.length], ["dungeon", "던전", dgCount]].map(function (t) {
+    tabs.innerHTML = [["gibo", "기보", GM.gibo.length], ["npc", "NPC", GM.npc.length], ["dungeon", "던전", dgCount]].concat(window.WX_ENEMY ? [["enemy", "에너미", window.WX_ENEMY.count(GM)]] : []).map(function (t) {
       return '<a href="#gm" data-tab="' + t[0] + '"' + (GM.tab === t[0] ? ' aria-current="page"' : "") + ">" + t[1] + " <small>" + t[2] + "</small></a>";
     }).join("");
   }
@@ -186,6 +186,7 @@
     var msg = GM.err ? '<p class="hint gm-err">' + e(GM.err) + "</p>" : !GM.giboReady && !GM.gibo.length ? '<p class="hint">불러오는 중…</p>' : "";
     if (GM.tab === "gibo") body.innerHTML = msg + giboFilters() + '<div id="gm-list"></div>';
     else if (GM.tab === "npc") body.innerHTML = msg + '<div class="gm-bar"><div class="field"><label for="gm-nq">찾기</label><input id="gm-nq" type="search" data-gf="nq" value="' + e(GM.f.nq || "") + '" placeholder="이름·소속·역할"></div><button type="button" class="btn small" data-act="npc-add">NPC 추가</button></div><div id="gm-list"></div>';
+    else if (GM.tab === "enemy") body.innerHTML = msg + '<div id="gm-list"></div>';
     else body.innerHTML = msg + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.' + (window.WX_DG ? " '던전 짜기'를 누르면 층과 구역을 짜고 고칩니다. 고친 뒤에는 꼭 '저장'을 누르세요." : "") + '</p><div id="gm-list"></div>';
     drawList();
   }
@@ -206,6 +207,7 @@
     var box = q("#gm-list"); if (!box) return;
     if (GM.tab === "gibo") box.innerHTML = giboList();
     else if (GM.tab === "npc") box.innerHTML = npcList();
+    else if (GM.tab === "enemy") { if (window.WX_ENEMY) WX_ENEMY.draw(box, { DB: DB, COL_N: COL_N, GM: GM, go: function (tab, id) { GM.tab = tab; GM.open = id; drawBody(); } }); }
     else box.innerHTML = dungeonList();
   }
 

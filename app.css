@@ -804,3 +804,35 @@ details.lore-d[open] > summary::before { content: "－ "; }
 .bd-skb .bd-eff { display: block; margin-top: 4px; font-size: .9em; }
 .bd-pend { border-color: #a8322d; }
 .bd-box ol.hint { padding-left: 1.2em; margin: 6px 0 0; }
+
+/* ── 세계관(강호사) ── */
+.lore .toc-group{margin:0 0 .9rem}
+.lore .toc-group>.lbl{font-size:.78rem;opacity:.7;margin:.2rem 0 .3rem;letter-spacing:.04em}
+.lore-when{opacity:.6;font-size:.75em}
+.lore-intro .lore-groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:1rem;margin:.5rem 0 1.5rem}
+.lore-g{border:1px solid currentColor;border-color:rgba(127,127,127,.3);border-radius:6px;padding:.8rem 1rem}
+.lore-g h3{margin:0 0 .4rem}
+.lore-g p{font-size:.92rem}
+.lore-sects{font-size:.88rem}
+.lore-grp{margin:.6rem 0 0;font-size:.92rem}
+.lore-grp summary{cursor:pointer;opacity:.8}
+mark.lore-gm{background:rgba(180,40,40,.13);color:inherit;border-radius:3px;padding:0 .2em}
+/* ── GM 서고 · 에너미 ── */
+.en-root h2{margin:1rem 0 .4rem}
+.en-root h3{margin:1.2rem 0 .4rem}
+.en-card{border:1px solid rgba(127,127,127,.3);border-radius:6px;padding:.8rem 1rem;margin:.6rem 0}
+.en-h{display:flex;flex-wrap:wrap;gap:.4rem .8rem;align-items:baseline}
+.en-t{margin-left:auto;font-weight:600}
+.en-card p{margin:.35rem 0}
+.en-card .lbl{font-size:.78rem;opacity:.7;margin-right:.3rem}
+.en-gm{background:rgba(180,40,40,.07);padding:.3rem .5rem;border-radius:4px}
+.en-ab{font-size:.88rem}
+.en-ab td:last-child{min-width:16rem}
+.en-pick{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;margin:.8rem 0 .4rem}
+.en-pick select{max-width:100%;flex:1 1 18rem}
+.en-abrow{display:flex;flex-wrap:wrap;gap:.3rem;margin:.25rem 0}
+.en-abrow input{flex:0 1 9rem;min-width:0}
+.en-abrow input.sm{flex:0 0 3.2rem}
+.en-abrow input.wide{flex:1 1 16rem}
+.en-budget,.en-total{margin:.5rem 0}
+.gm-grid .field.wide{grid-column:1/-1}
