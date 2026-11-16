@@ -34,6 +34,7 @@
   function md2html(md) {
     md = gmFilter(md || "");
     if (!OWNER) md = md.replace(/\s?[★☆◆]/g, "");
+    md = md.replace(/\*\*([^*\n]+?)\*\*(?=[가-힣])/g, "<b>$1</b>");
     var h = window.marked ? marked.parse(md) : "<pre>" + esc(md) + "</pre>";
     if (window.DOMPurify) h = DOMPurify.sanitize(h);
     if (OWNER) h = h.replace(/🔒([^<]*)/g, '<mark class="lore-gm" title="GM만 보는 내용">🔒$1</mark>');
