@@ -133,6 +133,21 @@
       lore: "병마령 연단사가 부리는 시체. 천지혈전에서 쓰러진 정파의 얼굴도 있다." }
   ];
 
+  /* endata.js(WX_EN_SEED)에서 위 목록에 없는 것을 덧붙인다 */
+  (function () {
+    var S = window.WX_EN_SEED; if (!S || !S.length) return;
+    var HAVE = ["en-seomyeo", "en-baekaek", "en-changgwi", "en-geumjam", "en-nue", "en-heukuin", "en-heukuin1", "en-seosaeng", "en-gwangin", "en-magyeon", "en-sima", "en-heukhak", "en-galpae", "en-gureumbeom", "en-dancheon", "en-homi", "en-temurbuqa", "en-gangsi", "en-uryang", "en-sicheo", "en-azdaha"];
+    var names = {}; CAT.forEach(function (c) { names[c.n] = 1; });
+    S.forEach(function (x) {
+      if (HAVE.indexOf(x.id) >= 0 || names[x.n]) return;
+      var u = null;
+      if (x.trait) { var i = x.trait.indexOf(":"); u = i > 0 && i < 20 ? { n: x.trait.slice(0, i).trim(), e: x.trait.slice(i + 1).trim() } : { n: "특징", e: x.trait }; }
+      CAT.push({ id: x.id, set: x.g === "마계" ? "마계의 흔한 것들" : (x.g || "그 밖"), n: x.n, kind: x.kind || "", grade: x.grade, lv: x.lv,
+        hp: x.grade === "이물" ? (x.hpPc ? { b: Number(x.hp) || 8, p: x.hpPc } : Number(x.hp) || 4) : undefined, tn: x.tn ? Number(x.tn) : undefined, hpNote: x.hpNote || "", extraThreat: x.threatAdd || 0,
+        uniq: u, abil: x.abil || [], mg: [x.mg, x.og].filter(Boolean).join(". "), loot: x.loot || "", lore: x.lore || "", gm: [x.gm, x.how].filter(Boolean).join(" ") });
+    });
+  })();
+
   /* 메이커에서 고를 수 있는 이능: 목록의 이능 + 범용 몇 개 */
   var GENERIC = [
     A("할퀴기", "공격", "1", "1", "접근전 1점."), A("들이받기", "공격", "1", "2", "접근전 2점. 대상을 1칸 밀어낸다."),

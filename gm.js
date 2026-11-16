@@ -70,7 +70,7 @@
     }, function (err) { clearTimeout(t); GM.err = "기보 자료를 읽지 못했어요 (" + (err && err.code || "오류") + ")."; redraw(); });
     db.collection(COL_N).onSnapshot(function (s) {
       GM.npc = s.docs.map(function (d) { return Object.assign({ id: d.id }, d.data()); }).sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); });
-      if (!s.metadata.fromCache) { GM.npcReady = true; migrateNpcOg(); }
+      if (!s.metadata.fromCache) { GM.npcReady = true; migrateNpcOg(); addSeedNpcs(); }
       redraw();
     }, function () { GM.npcReady = true; redraw(); });
   }
@@ -104,6 +104,26 @@
       DB.collection(COL_N).doc(n.id).update({ sheet: str ? JSON.stringify(c) : c }).catch(function () { });
     });
     if (n0 && window.toast) toast("서고 NPC " + n0 + "명의 시트를 새 오의 형태·무공 이름으로 옮겼어요");
+  }
+  /* endata.js(WX_NPC_ADD)의 NPC를 서고에 넣는다. 이름 바꾸기와, 같은 id·이름이 없는 것만 더하기. 한 번 넣은 뒤 지운 것은 다시 넣지 않는다 */
+  var seedDone = false;
+  function addSeedNpcs() {
+    var A = window.WX_NPC_ADD; if (seedDone || !A || !DB) return; seedDone = true;
+    var mk = "wx-npc-add-" + (A.ver || 1) + "-" + KEY, done = {};
+    try { done = JSON.parse(localStorage.getItem(mk) || "{}"); } catch (x) { }
+    var col = DB.collection(COL_N), n0 = 0;
+    (A.rename || []).forEach(function (r) {
+      GM.npc.forEach(function (n) { if (n.n === r.from) { col.doc(n.id).update(r.to).catch(function () { }); n0++; } });
+    });
+    (A.add || []).forEach(function (a) {
+      if (done[a.id]) return;
+      done[a.id] = 1;
+      if (GM.npc.some(function (n) { return n.id === a.id || n.n === a.n; })) return;
+      var d = JSON.parse(JSON.stringify(a)); delete d.id;
+      col.doc(a.id).set(d).catch(function () { }); n0++;
+    });
+    try { localStorage.setItem(mk, JSON.stringify(done)); } catch (x) { }
+    if (n0 && window.toast) toast("강호사 NPC " + n0 + "명을 서고에 넣었어요");
   }
   /* 비밀번호를 확인하고 연다. 저장소에 기보가 하나라도 있으면 맞는 비밀번호다 */
   function tryKey(db, key) {
