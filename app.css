@@ -836,3 +836,9 @@ mark.lore-gm{background:rgba(180,40,40,.13);color:inherit;border-radius:3px;padd
 .en-abrow input.wide{flex:1 1 16rem}
 .en-budget,.en-total{margin:.5rem 0}
 .gm-grid .field.wide{grid-column:1/-1}
+/* GM 서고 목록 머리말 (11-18) */
+.gm-grp { margin: 14px 0 2px; font-family: inherit; }
+.gm-grp0 { font-size: 1.05rem; border-bottom: 1px solid currentColor; padding-bottom: 2px; }
+.gm-grp1 { font-size: .95rem; opacity: .85; margin-top: 8px; }
+.gm-grp2 { font-size: .82rem; opacity: .7; margin-top: 4px; font-weight: 600; }
+.gm-rows > .gm-grp, .en-list > .gm-grp { grid-column: 1 / -1; }

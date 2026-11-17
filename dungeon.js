@@ -227,19 +227,24 @@
     return h + "</div>" + '<p class="hint">보상(기보 탭에서 이 던전에 둔 것): ' + (loot.length ? e(loot.join(" · ")) : "아직 없음") + ". 던전 안에서는 처음 가는 구역으로 옮길 때마다 일행 전원에게 마기 1이 쌓입니다. 전투 크기: 보스 없는 구역은 쉬운(PC 경지 단계 합의 절반), 중간 보스는 보통, 최종 보스는 어려운(1.5배).</p></div>";
   }
   function html(ctx) {
-    CTX = ctx; sync(ctx); var out = [];
+    CTX = ctx; sync(ctx); var out = [], LS = [];
+    /* 층 많은 순 → 구역 많은 순 → 난이도(나오는 에너미의 가장 높은 경지) 높은 순 */
     ctx.maps().forEach(function (m) { m.zones.forEach(function (z) {
-      if (!z.dg) return;
+      if (!z.dg) return; var k0 = m.id + "~" + z.id, d0 = stored(k0) || SEED[k0];
+      LS.push({ m: m, z: z, i: window.WX_DG_INFO ? WX_DG_INFO(d0) : { f: 0, z: 0, r: 99, lv: "" } });
+    }); });
+    LS.sort(function (a, b) { return b.i.f - a.i.f || b.i.z - a.i.z || a.i.r - b.i.r || a.z.n.localeCompare(b.z.n); });
+    LS.forEach(function (x) { var m = x.m, z = x.z; (function () {
       var key = m.id + "~" + z.id, sd = stored(key), seed = SEED[key], open = ST.open === key;
       var items = ctx.gm.gibo.filter(function (r) { return r.map === m.id && r.zone === z.id; }), npcs = ctx.gm.npc.filter(function (n) { return n.map === m.id && n.zone === z.id; });
       out.push('<article class="gm-dg' + (open ? " open" : "") + '"><div><b>' + e(z.n) + '</b> <span class="gm-meta">' + e(m.name) + " · " + e(z.dg) + (z.gmdg ? " · 직접 추가" : "") + "</span></div>" +
         '<p class="hint">' + e(z.e || "") + "</p>" +
-        '<p><span class="lbl">짜임</span> ' + (sd ? e(summary(sd)) : seed ? e(summary(seed)) + ' <span class="hint">(기본 제공)</span>' : '<span class="hint">아직 안 짬</span>') + "</p>" +
+        '<p><span class="lbl">짜임</span> ' + (sd ? e(summary(sd)) + (x.i.lv ? " · 난이도 " + x.i.lv : "") : seed ? e(summary(seed)) + (x.i.lv ? " · 난이도 " + x.i.lv : "") + ' <span class="hint">(기본 제공)</span>' : '<span class="hint">아직 안 짬</span>') + "</p>" +
         '<p><span class="lbl">보상</span> ' + (items.length ? items.map(function (r) { return e(r.n); }).join(" · ") : '<span class="hint">아직 없음</span>') + "</p>" +
         (npcs.length ? '<p><span class="lbl">지키는 자</span> ' + npcs.map(function (n) { return e(n.n); }).join(" · ") + "</p>" : "") +
         '<div class="sheet-actions"><button type="button" class="btn small' + (open ? " primary" : "") + '" data-dg="open:' + e(key) + '">' + (open ? "닫기" : sd || seed ? "열어서 고치기" : "던전 짜기") + '</button><a class="btn small" href="' + ctx.mapHref(m) + '">강호도에서 보기</a></div>' +
         (open && ST.ed ? editor(key) : "") + "</article>");
-    }); });
+    })(); });
     return addForm() + '<div class="gm-dgs dg-list">' + out.join("") + "</div>";
   }
   /* 새 던전: 있는 구역을 던전으로 삼거나, 구역을 새로 만들어 어디에 어떤 길로 이을지 정한다 */

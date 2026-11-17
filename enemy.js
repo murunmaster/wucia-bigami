@@ -224,7 +224,7 @@
   /* ── 그리기 ── */
   function card(x, pc, src) {
     var t = threatOf(x, pc), tn = tnOf(x);
-    return '<article class="en-card"><div class="en-h"><b>' + e(x.n) + '</b><span class="gm-meta">' + e([x.kind, x.lv, x.grade].filter(Boolean).join(" · ")) + (x.where ? " · " + e(x.where) : "") + '</span><span class="en-t">위협도 ' + t + "</span></div>" +
+    return '<article class="en-card"><div class="en-h"><b>' + e(x.n) + '</b><span class="gm-meta">' + e([x.kind, x.lv, x.grade].filter(Boolean).join(" · ")) + (x.set ? " · " + e(x.set) : "") + (x.where ? " · " + e(x.where) : "") + '</span><span class="en-t">위협도 ' + t + "</span></div>" +
       '<p class="en-stat">생명력 <b>' + e(hpText(x, pc)) + "</b>" + (tn ? " · 목표치 <b>" + tn + "</b>" : " · 특기는 PC처럼") + (x.grade === "이물" ? " · 공력 1d6" : "") + (x.kind === "괴력난신" ? " · 감정 불가 · 공격 성공 시 마기 1" : "") + (x.grade === "두목" ? " · 오의 +1 · 공격 무공 2개" : "") + "</p>" +
       (x.uniq ? '<p class="en-uniq"><span class="lbl">고유</span> <b>' + e(x.uniq.n) + "</b> " + e(x.uniq.e) + "</p>" : "") +
       (x.own ? '<p class="en-uniq"><span class="lbl">구역의 주인</span> ' + e(x.own) + "</p>" : "") +
@@ -300,6 +300,17 @@
       '<p class="hint">위협도: 졸개 0.5 · 무인 경지 단계 · 두목 +2 · 이물 생명력 6 이상이면 +1. 6×6 판에 놓기 어려우면 졸개를 줄이고 두목의 추가 생명력을 늘린다.</p></section>';
   }
 
+  /* 목록 정리: 종류별 → 경지 높은 순 → 등급(두목·이물·무인·졸개) → 이름 (11-18) */
+  var KIND_SORT = ["괴력난신", "요괴", "영물", "마인", "사람"], GRADE_SORT = ["두목", "이물", "무인", "졸개"];
+  function byKind(rows) {
+    var ks = {}; rows.forEach(function (c) { var k = c.kind || "그 밖"; (ks[k] = ks[k] || []).push(c); });
+    return Object.keys(ks).sort(function (a, b) { var i = KIND_SORT.indexOf(a), j = KIND_SORT.indexOf(b); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j) || a.localeCompare(b); }).map(function (k) {
+      var ls = {}; ks[k].forEach(function (c) { var l = c.lv || "경지 미정"; (ls[l] = ls[l] || []).push(c); });
+      return { k: k, n: ks[k].length, lvs: Object.keys(ls).sort(function (a, b) { var i = LV.indexOf(a), j = LV.indexOf(b); return (j < 0 ? -1 : j) - (i < 0 ? -1 : i); }).map(function (l) {
+        return { lv: l, rows: ls[l].sort(function (a, b) { return GRADE_SORT.indexOf(a.grade) - GRADE_SORT.indexOf(b.grade) || String(a.n).localeCompare(String(b.n)); }) };
+      }) };
+    });
+  }
   function listHtml(ctx) {
     var t = ST.q.trim(), pc = ST.pc;
     var saved = savedList(ctx).filter(function (x) { return !t || (x.n + " " + (x.where || "")).indexOf(t) >= 0; });
@@ -307,9 +318,11 @@
     var rows = CAT.filter(function (c) { return (!ST.set || c.set === ST.set) && (!t || (c.n + " " + (c.where || "") + " " + (c.lore || "") + " " + c.kind).indexOf(t) >= 0); });
     return '<section class="en-list"><h2>에너미 목록</h2><div class="gm-bar"><div class="field"><label for="en-q">찾기</label><input id="en-q" type="search" data-st="q" value="' + e(ST.q) + '" placeholder="이름·자리·종류"></div>' +
       '<div class="field"><label for="en-set">묶음</label><select id="en-set" data-st="set"><option value="">전체</option>' + sets.map(function (s) { return "<option" + (s === ST.set ? " selected" : "") + ">" + e(s) + "</option>"; }).join("") + "</select></div></div>" +
-      (saved.length ? '<h3>서고에 넣은 에너미 <small>' + saved.length + "</small></h3>" + saved.map(function (x) { return card(x, pc, "n:" + x._id); }).join("") : "") +
-      sets.filter(function (s) { return rows.some(function (c) { return c.set === s; }); }).map(function (s) {
-        return "<h3>" + e(s) + "</h3>" + rows.filter(function (c) { return c.set === s; }).map(function (c) { return card(c, pc, "c:" + c.id); }).join("");
+      (saved.length ? '<h3>서고에 넣은 에너미 <small>' + saved.length + "</small></h3>" + saved.slice().sort(function (a, b) { var i = KIND_SORT.indexOf(a.kind), j = KIND_SORT.indexOf(b.kind); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j) || LV.indexOf(b.lv) - LV.indexOf(a.lv); }).map(function (x) { return card(x, pc, "n:" + x._id); }).join("") : "") +
+      byKind(rows).map(function (g) {
+        return '<h3 class="gm-grp gm-grp0">' + e(g.k) + " <small>" + g.n + "</small></h3>" + g.lvs.map(function (l) {
+          return '<h4 class="gm-grp gm-grp1">' + e(l.lv) + "</h4>" + l.rows.map(function (c) { return card(c, pc, "c:" + c.id); }).join("");
+        }).join("");
       }).join("") + "</section>";
   }
 

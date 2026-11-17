@@ -248,6 +248,49 @@
       sel("gm-st", "st", "상태", STATUS, GM.f.st) + "</div>";
   }
 
+
+  /* ── 목록 정리 순서 (11-18): NPC 대분류-소분류-경지, 기보 상태-위치-유형 ── */
+  var SORT_LV = ["현경", "화경", "절정", "일류", "이류", "삼류"];
+  function lvRank(v) { var i = SORT_LV.indexOf(v); return i < 0 ? 99 : i; }
+  var SECTS = [["오대문파", ["무당파", "소림사", "곤륜파", "화산파", "개방"]], ["오대세가", ["남궁세가", "사천당가", "제갈세가", "하북팽가", "산동악가"]],
+    ["정사지간", ["무림맹", "상회", "표국", "낭인", "금의위/동창"]], ["사도오천", ["패검종", "암야전", "군마녹림", "장강수로채", "흑상"]],
+    ["천마신교", ["교주궁", "병마령", "비연각", "요왕장", "혈교"]], ["세외", ["북해빙궁", "포달랍궁", "동영", "서역", "천축", "해동", "북원"]]];
+  var GRP_ORDER = SECTS.map(function (s) { return s[0]; }).concat(["그 밖"]);
+  function sectOf(g) {
+    g = String(g || "").trim();
+    for (var i = 0; i < SECTS.length; i++) {
+      if (g === SECTS[i][0]) return { big: SECTS[i][0], sub: g, si: -1 };
+      var j = SECTS[i][1].indexOf(g); if (j >= 0) return { big: SECTS[i][0], sub: g, si: j };
+    }
+    return { big: "그 밖", sub: g || "소속 없음", si: 999 };
+  }
+  function npcSorted(rows) {
+    return rows.map(function (n) { var s = sectOf(n.g); return { n: n, s: s }; }).sort(function (a, b) {
+      return GRP_ORDER.indexOf(a.s.big) - GRP_ORDER.indexOf(b.s.big) || a.s.si - b.s.si || (a.s.si === 999 ? a.s.sub.localeCompare(b.s.sub) : 0) ||
+        lvRank(a.n.lv) - lvRank(b.n.lv) || String(a.n.n || "").localeCompare(String(b.n.n || ""));
+    });
+  }
+  var ST_ORDER = ["배치", "보유", "발견", "공개", "미정"], ST_LABEL = { "보유": "보유(소지)" };
+  var CAT_ORDER = ["병기", "기보", "서책", "단약", "재료"];
+  var KIND_ORDER = ["지역", "문파", "명승", "세외"];
+  function giboPlace(r) {
+    var m = r.map ? mapById(r.map) : null;
+    if (!m && r.holder) { var n = npcById(r.holder); if (n && n.map) m = mapById(n.map); if (!m) return { k: 8, name: "떠도는 소지자" }; }
+    if (m) return { k: KIND_ORDER.indexOf(kindOf(m)), name: m.name };
+    return { k: 9, name: r.pool ? "던전 묶음" : "자리 미정" };
+  }
+  function giboSorted(rows) {
+    return rows.map(function (r) { return { r: r, st: r.status || "미정", p: giboPlace(r) }; }).sort(function (a, b) {
+      var ca = CAT_ORDER.indexOf(a.r.cat), cb = CAT_ORDER.indexOf(b.r.cat);
+      return ST_ORDER.indexOf(a.st) - ST_ORDER.indexOf(b.st) || a.p.k - b.p.k || a.p.name.localeCompare(b.p.name) ||
+        (ca < 0 ? 99 : ca) - (cb < 0 ? 99 : cb) || (a.r.no || 0) - (b.r.no || 0);
+    });
+  }
+  function heads(prev, cur, tags) {   /* 바뀐 단계부터 머리말을 단다 */
+    var h = "", ch = false;
+    for (var i = 0; i < cur.length; i++) { if (ch || !prev || prev[i] !== cur[i]) { ch = true; if (cur[i] != null) h += "<" + tags[i] + ' class="gm-grp gm-grp' + i + '">' + e(cur[i]) + "</" + tags[i] + ">"; } }
+    return h;
+  }
   function drawList() {
     var box = q("#gm-list"); if (!box) return;
     if (GM.tab === "gibo") box.innerHTML = giboList();
@@ -263,9 +306,10 @@
         (!t || (r.n + " " + r.e + " " + whereText(r) + " " + (r.memo || "")).indexOf(t) >= 0);
     });
     if (!rows.length) return '<p class="hint">' + (GM.gibo.length ? "조건에 맞는 기보가 없어요." : "아직 등록된 기보가 없어요.") + "</p>";
-    return '<p class="count">' + rows.length + "개</p>" + '<div class="gm-rows">' + rows.map(function (r) {
-      var open = GM.open === "g:" + r.id;
-      return '<article class="gm-row' + (open ? " open" : "") + '"><button type="button" class="gm-head" data-act="open" data-id="g:' + r.id + '" aria-expanded="' + open + '">' +
+    var prevG = null;
+    return '<p class="count">' + rows.length + "개 · 상태 → 자리 → 분류 순</p>" + '<div class="gm-rows">' + giboSorted(rows).map(function (x) {
+      var r = x.r, open = GM.open === "g:" + r.id, key = [ST_LABEL[x.st] || x.st, x.p.name, r.cat || "분류 없음"], hd = heads(prevG, key, ["h3", "h4", "h5"]); prevG = key;
+      return hd + '<article class="gm-row' + (open ? " open" : "") + '"><button type="button" class="gm-head" data-act="open" data-id="g:' + r.id + '" aria-expanded="' + open + '">' +
         '<b>' + e(r.n) + "</b>" + '<span class="gm-meta">' + e(r.cat) + " · " + e(r.src) + "</span>" +
         '<span class="gm-where">' + e(whereText(r)) + "</span>" + '<span class="gm-st st-' + e(r.status || "미정") + '">' + e(r.status || "미정") + "</span></button>" +
         (open ? giboEditor(r) : "") + "</article>";
@@ -306,10 +350,11 @@
     var t = (GM.f.nq || "").trim();
     var rows = GM.npc.filter(function (n) { return !t || (n.n + " " + (n.g || "") + " " + (n.role || "")).indexOf(t) >= 0; });
     if (!rows.length) return '<p class="hint">' + (GM.npc.length ? "조건에 맞는 NPC가 없어요." : "아직 등록된 NPC가 없어요. NPC 추가를 눌러 만드세요.") + "</p>";
-    return '<p class="count">' + rows.length + "명</p>" + '<div class="gm-rows">' + rows.map(function (n) {
-      var open = GM.open === "n:" + n.id, m = mapById(n.map);
+    var prevN = null;
+    return '<p class="count">' + rows.length + "명 · 대분류 → 소속 → 경지 순</p>" + '<div class="gm-rows">' + npcSorted(rows).map(function (x) {
+      var n = x.n, open = GM.open === "n:" + n.id, m = mapById(n.map), key = [x.s.big, x.s.sub, n.lv || "경지 미정"], hd = heads(prevN, key, ["h3", "h4", "h5"]); prevN = key;
       var held = GM.gibo.filter(function (r) { return r.holder === n.id; }).map(function (r) { return r.n; });
-      return '<article class="gm-row' + (open ? " open" : "") + '"><button type="button" class="gm-head" data-act="open" data-id="n:' + n.id + '" aria-expanded="' + open + '">' +
+      return hd + '<article class="gm-row' + (open ? " open" : "") + '"><button type="button" class="gm-head" data-act="open" data-id="n:' + n.id + '" aria-expanded="' + open + '">' +
         "<b>" + e(n.n || "(이름 없음)") + "</b>" + '<span class="gm-meta">' + e(n.g || "") + (n.role ? " · " + e(n.role) : "") + (n.lv || n.grade ? ' <small class="gm-st">' + e([n.lv, n.grade].filter(Boolean).join(" ")) + (n.sheet ? " · 시트" : "") + "</small>" : "") + "</span>" +
         '<span class="gm-where">' + e(m ? m.name + (n.zone ? " · " + zoneName(m, n.zone) : "") : "떠돎") + "</span>" +
         '<span class="gm-st">' + (held.length ? e(held.join(" · ")) : "") + "</span></button>" + (open ? npcEditor(n) : "") + "</article>";
@@ -380,19 +425,36 @@
   }
 
   function dgCtx() { return { db: DB, col: COL_G, gm: GM, maps: maps, mapHref: mapHref, redraw: drawList }; }
+
+  /* 던전 정리: 층 많은 순 → 구역 많은 순 → 난이도(나오는 에너미의 가장 높은 경지) 높은 순 */
+  window.WX_DG_INFO = function (d) {
+    var o = { f: 0, z: 0, lv: "", r: 99 }; if (!d || !d.floors) return o;
+    var names = (window.WX_EN_SEED || []).map(function (x) { return [x.n.replace(/\(.*$/, "").trim(), x.lv]; }).filter(function (p) { return p[0].length >= 3; });
+    o.f = d.floors.length;
+    d.floors.forEach(function (f) { o.z += f.zones.length; f.zones.forEach(function (z) {
+      var t = (z.foes || "") + " " + (z.k === "보스" ? z.e || "" : "");
+      SORT_LV.forEach(function (lv, i) { if (t.indexOf(lv) >= 0 && i < o.r) o.r = i; });
+      names.forEach(function (p) { if (p[0] && t.indexOf(p[0]) >= 0) { var i = SORT_LV.indexOf(p[1]); if (i >= 0 && i < o.r) o.r = i; } });
+    }); });
+    o.lv = o.r < 99 ? SORT_LV[o.r] : ""; return o;
+  };
+  function dgSorted() {
+    var S = window.WX_DG_SEED || {}, out = [];
+    maps().forEach(function (m) { m.zones.forEach(function (z) { if (z.dg) out.push({ m: m, z: z, info: WX_DG_INFO(S[m.id + "~" + z.id]) }); }); });
+    return out.sort(function (a, b) { return b.info.f - a.info.f || b.info.z - a.info.z || a.info.r - b.info.r || a.z.n.localeCompare(b.z.n); });
+  }
   function dungeonList() {
     if (window.WX_DG) return WX_DG.html(dgCtx());
     var out = [];
-    maps().forEach(function (m) { m.zones.forEach(function (z) {
-      if (!z.dg) return;
+    dgSorted().forEach(function (x) { var m = x.m, z = x.z; (function () {
       var items = GM.gibo.filter(function (r) { return r.map === m.id && r.zone === z.id; });
       var npcs = GM.npc.filter(function (n) { return n.map === m.id && n.zone === z.id; });
-      out.push('<article class="gm-dg"><div><b>' + e(z.n) + '</b> <span class="gm-meta">' + e(m.name) + " · " + e(z.dg) + "</span></div>" +
+      out.push('<article class="gm-dg"><div><b>' + e(z.n) + '</b> <span class="gm-meta">' + e(m.name) + " · " + e(z.dg) + (x.info.f ? " · " + x.info.f + "층 · 구역 " + x.info.z : "") + (x.info.lv ? " · 난이도 " + x.info.lv : "") + "</span></div>" +
         '<p class="hint">' + e(z.e || "") + "</p>" +
         '<p><span class="lbl">보상</span> ' + (items.length ? items.map(function (r) { return e(r.n) + ' <small class="gm-st st-' + e(r.status || "미정") + '">' + e(r.status || "미정") + "</small>"; }).join(" · ") : '<span class="hint">아직 없음</span>') + "</p>" +
         (npcs.length ? '<p><span class="lbl">지키는 자</span> ' + npcs.map(function (n) { return e(n.n); }).join(" · ") + "</p>" : "") +
         '<a class="btn small" href="' + mapHref(m) + '">강호도에서 보기</a></article>');
-    }); });
+    })(); });
     return '<div class="gm-dgs">' + out.join("") + "</div>";
   }
 
