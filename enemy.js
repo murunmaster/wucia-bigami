@@ -315,8 +315,13 @@
     var t = ST.q.trim(), pc = ST.pc;
     var saved = savedList(ctx).filter(function (x) { return !t || (x.n + " " + (x.where || "")).indexOf(t) >= 0; });
     var sets = []; CAT.forEach(function (c) { if (sets.indexOf(c.set) < 0) sets.push(c.set); });
-    var rows = CAT.filter(function (c) { return (!ST.set || c.set === ST.set) && (!t || (c.n + " " + (c.where || "") + " " + (c.lore || "") + " " + c.kind).indexOf(t) >= 0); });
+    function pass(c) { return (!ST.fk || (c.kind || "그 밖") === ST.fk) && (!ST.fl || c.lv === ST.fl) && (!ST.fg || c.grade === ST.fg); }
+    saved = saved.filter(pass);
+    var rows = CAT.filter(function (c) { return (!ST.set || c.set === ST.set) && pass(c) && (!t || (c.n + " " + (c.where || "") + " " + (c.lore || "") + " " + c.kind).indexOf(t) >= 0); });
+    function fsel(id, k, label, list) { return '<div class="field"><label for="' + id + '">' + label + '</label><select id="' + id + '" data-st="' + k + '"><option value="">전체</option>' + list.map(function (v) { return "<option" + (v === ST[k] ? " selected" : "") + ">" + e(v) + "</option>"; }).join("") + "</select></div>"; }
+    var kinds = KIND_SORT.filter(function (k) { return CAT.some(function (c) { return c.kind === k; }); });
     return '<section class="en-list"><h2>에너미 목록</h2><div class="gm-bar"><div class="field"><label for="en-q">찾기</label><input id="en-q" type="search" data-st="q" value="' + e(ST.q) + '" placeholder="이름·자리·종류"></div>' +
+      fsel("en-fk", "fk", "종류", kinds) + fsel("en-fl", "fl", "경지", LV.slice().reverse()) + fsel("en-fg", "fg", "등급", GRADE_SORT) +
       '<div class="field"><label for="en-set">묶음</label><select id="en-set" data-st="set"><option value="">전체</option>' + sets.map(function (s) { return "<option" + (s === ST.set ? " selected" : "") + ">" + e(s) + "</option>"; }).join("") + "</select></div></div>" +
       (saved.length ? '<h3>서고에 넣은 에너미 <small>' + saved.length + "</small></h3>" + saved.slice().sort(function (a, b) { var i = KIND_SORT.indexOf(a.kind), j = KIND_SORT.indexOf(b.kind); return (i < 0 ? 99 : i) - (j < 0 ? 99 : j) || LV.indexOf(b.lv) - LV.indexOf(a.lv); }).map(function (x) { return card(x, pc, "n:" + x._id); }).join("") : "") +
       byKind(rows).map(function (g) {

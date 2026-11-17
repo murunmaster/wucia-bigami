@@ -231,7 +231,7 @@
     /* 층 많은 순 → 구역 많은 순 → 난이도(나오는 에너미의 가장 높은 경지) 높은 순 */
     ctx.maps().forEach(function (m) { m.zones.forEach(function (z) {
       if (!z.dg) return; var k0 = m.id + "~" + z.id, d0 = stored(k0) || SEED[k0];
-      LS.push({ m: m, z: z, i: window.WX_DG_INFO ? WX_DG_INFO(d0) : { f: 0, z: 0, r: 99, lv: "" } });
+      var i0 = window.WX_DG_INFO ? WX_DG_INFO(d0) : { f: 0, z: 0, r: 99, lv: "" }; if (!window.WX_DG_PASS || WX_DG_PASS(m, z, i0)) LS.push({ m: m, z: z, i: i0 });
     }); });
     LS.sort(function (a, b) { return b.i.f - a.i.f || b.i.z - a.i.z || a.i.r - b.i.r || a.z.n.localeCompare(b.z.n); });
     LS.forEach(function (x) { var m = x.m, z = x.z; (function () {

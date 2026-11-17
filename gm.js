@@ -205,7 +205,7 @@
     if (q("#gm-lockbtn")) q("#gm-lockbtn").onclick = function () { ssSet(""); location.reload(); };
     q("#gm-tabs").addEventListener("click", function (ev) { var a = ev.target.closest("[data-tab]"); if (!a) return; ev.preventDefault(); GM.tab = a.dataset.tab; GM.open = ""; drawBody(); });
     var body = q("#gm-body");
-    body.addEventListener("input", function (ev) { var f = ev.target.closest("[data-gf]"); if (f) { GM.f[f.dataset.gf] = f.value; drawList(); } });
+    body.addEventListener("input", function (ev) { var f = ev.target.closest("[data-gf]"); if (f) { GM.f[f.dataset.gf] = f.value; if (f.dataset.gf === "nbig") { GM.f.nsub = ""; drawBody(); return; } drawList(); } });
     body.addEventListener("change", function (ev) {
       var t = ev.target;
       if (GM.tab === "dungeon" && window.WX_DG && WX_DG.onChange(ev)) return;
@@ -230,9 +230,9 @@
     var body = q("#gm-body");
     var msg = GM.err ? '<p class="hint gm-err">' + e(GM.err) + "</p>" : !GM.giboReady && !GM.gibo.length ? '<p class="hint">불러오는 중…</p>' : "";
     if (GM.tab === "gibo") body.innerHTML = msg + giboFilters() + '<div id="gm-list"></div>';
-    else if (GM.tab === "npc") body.innerHTML = msg + '<div class="gm-bar"><div class="field"><label for="gm-nq">찾기</label><input id="gm-nq" type="search" data-gf="nq" value="' + e(GM.f.nq || "") + '" placeholder="이름·소속·역할"></div><button type="button" class="btn small" data-act="npc-add">NPC 추가</button></div><div id="gm-list"></div>';
+    else if (GM.tab === "npc") body.innerHTML = msg + '<div class="gm-bar"><div class="field"><label for="gm-nq">찾기</label><input id="gm-nq" type="search" data-gf="nq" value="' + e(GM.f.nq || "") + '" placeholder="이름·소속·역할"></div>' + npcFilters() + '<button type="button" class="btn small" data-act="npc-add">NPC 추가</button></div><div id="gm-list"></div>';
     else if (GM.tab === "enemy") body.innerHTML = msg + '<div id="gm-list"></div>';
-    else body.innerHTML = msg + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.' + (window.WX_DG ? " '던전 짜기'를 누르면 층과 구역을 짜고 고칩니다. 고친 뒤에는 꼭 '저장'을 누르세요." : "") + '</p><div id="gm-list"></div>';
+    else body.innerHTML = msg + dgFilters() + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.' + (window.WX_DG ? " '던전 짜기'를 누르면 층과 구역을 짜고 고칩니다. 고친 뒤에는 꼭 '저장'을 누르세요." : "") + '</p><div id="gm-list"></div>';
     drawList();
   }
 
@@ -245,7 +245,8 @@
     return '<div class="gm-bar"><div class="field"><label for="gm-q">찾기</label><input id="gm-q" type="search" data-gf="q" value="' + e(GM.f.q || "") + '" placeholder="이름·효과·자리"></div>' +
       sel("gm-cat", "cat", "분류", uniq(GM.gibo.map(function (r) { return r.cat; })), GM.f.cat) +
       sel("gm-src", "src", "획득처", uniq(GM.gibo.map(function (r) { return r.src; })), GM.f.src) +
-      sel("gm-st", "st", "상태", STATUS, GM.f.st) + "</div>";
+      sel("gm-st", "st", "상태", STATUS, GM.f.st) +
+      sel("gm-gp", "gp", "자리", uniq(giboSorted(GM.gibo).map(function (x) { return x.p.name; })), GM.f.gp) + "</div>";
   }
 
 
@@ -302,7 +303,7 @@
   function giboList() {
     var f = GM.f, t = (f.q || "").trim();
     var rows = GM.gibo.filter(function (r) {
-      return (!f.cat || r.cat === f.cat) && (!f.src || r.src === f.src) && (!f.st || (r.status || "미정") === f.st) &&
+      return (!f.cat || r.cat === f.cat) && (!f.src || r.src === f.src) && (!f.st || (r.status || "미정") === f.st) && (!f.gp || giboPlace(r).name === f.gp) &&
         (!t || (r.n + " " + r.e + " " + whereText(r) + " " + (r.memo || "")).indexOf(t) >= 0);
     });
     if (!rows.length) return '<p class="hint">' + (GM.gibo.length ? "조건에 맞는 기보가 없어요." : "아직 등록된 기보가 없어요.") + "</p>";
@@ -348,7 +349,11 @@
 
   function npcList() {
     var t = (GM.f.nq || "").trim();
-    var rows = GM.npc.filter(function (n) { return !t || (n.n + " " + (n.g || "") + " " + (n.role || "")).indexOf(t) >= 0; });
+    var F = GM.f, rows = GM.npc.filter(function (n) {
+      var sc = sectOf(n.g), m = mapById(n.map);
+      return (!t || (n.n + " " + (n.g || "") + " " + (n.role || "")).indexOf(t) >= 0) && (!F.nbig || sc.big === F.nbig) && (!F.nsub || sc.sub === F.nsub) &&
+        (!F.nlv || (n.lv || "경지 미정") === F.nlv) && (!F.ngr || (n.grade || "등급 없음") === F.ngr) && (!F.nmap || (m ? kindOf(m) : "떠돎") === F.nmap) && (!F.nsh || (F.nsh === "있음") === !!n.sheet);
+    });
     if (!rows.length) return '<p class="hint">' + (GM.npc.length ? "조건에 맞는 NPC가 없어요." : "아직 등록된 NPC가 없어요. NPC 추가를 눌러 만드세요.") + "</p>";
     var prevN = null;
     return '<p class="count">' + rows.length + "명 · 대분류 → 소속 → 경지 순</p>" + '<div class="gm-rows">' + npcSorted(rows).map(function (x) {
@@ -440,8 +445,35 @@
   };
   function dgSorted() {
     var S = window.WX_DG_SEED || {}, out = [];
-    maps().forEach(function (m) { m.zones.forEach(function (z) { if (z.dg) out.push({ m: m, z: z, info: WX_DG_INFO(S[m.id + "~" + z.id]) }); }); });
+    maps().forEach(function (m) { m.zones.forEach(function (z) { if (z.dg) { var i = WX_DG_INFO(S[m.id + "~" + z.id]); if (WX_DG_PASS(m, z, i)) out.push({ m: m, z: z, info: i }); } }); });
     return out.sort(function (a, b) { return b.info.f - a.info.f || b.info.z - a.info.z || a.info.r - b.info.r || a.z.n.localeCompare(b.z.n); });
+  }
+
+  /* ── 탭마다 거르개 (11-18) ── */
+  function npcFilters() {
+    var S = npcSorted(GM.npc);
+    return sel("gm-nbig", "nbig", "대분류", uniq(S.map(function (x) { return x.s.big; })), GM.f.nbig) +
+      sel("gm-nsub", "nsub", "소속", uniq(S.filter(function (x) { return !GM.f.nbig || x.s.big === GM.f.nbig; }).map(function (x) { return x.s.sub; })), GM.f.nsub) +
+      sel("gm-nlv", "nlv", "경지", SORT_LV.concat(["경지 미정"]).filter(function (v) { return GM.npc.some(function (n) { return (n.lv || "경지 미정") === v; }); }), GM.f.nlv) +
+      sel("gm-ngr", "ngr", "등급", ["두목", "이물", "무인", "졸개", "등급 없음"].filter(function (v) { return GM.npc.some(function (n) { return (n.grade || "등급 없음") === v; }); }), GM.f.ngr) +
+      sel("gm-nmap", "nmap", "자리", KIND_ORDER.concat(["떠돎"]), GM.f.nmap) +
+      sel("gm-nsh", "nsh", "시트", ["있음", "없음"], GM.f.nsh);
+  }
+  function dgFilters() {
+    var all = dgAll();
+    return '<div class="gm-bar">' + sel("gm-dk", "dk", "종류", uniq(all.map(function (x) { return x.z.dg; })), GM.f.dk) +
+      sel("gm-df", "df", "층", uniq(all.map(function (x) { return x.info.f ? x.info.f + "층" : ""; })).sort().reverse(), GM.f.df) +
+      sel("gm-dl", "dl", "난이도", SORT_LV.concat(["미정"]).filter(function (v) { return all.some(function (x) { return (x.info.lv || "미정") === v; }); }), GM.f.dl) +
+      sel("gm-dm", "dm", "자리", KIND_ORDER, GM.f.dm) + "</div>";
+  }
+  window.WX_DG_PASS = function (m, z, info) {
+    var F = GM.f;
+    return (!F.dk || z.dg === F.dk) && (!F.df || (info.f + "층") === F.df) && (!F.dl || (info.lv || "미정") === F.dl) && (!F.dm || kindOf(m) === F.dm);
+  };
+  function dgAll() {
+    var S = window.WX_DG_SEED || {}, out = [];
+    maps().forEach(function (m) { m.zones.forEach(function (z) { if (z.dg) out.push({ m: m, z: z, info: WX_DG_INFO(S[m.id + "~" + z.id]) }); }); });
+    return out;
   }
   function dungeonList() {
     if (window.WX_DG) return WX_DG.html(dgCtx());
