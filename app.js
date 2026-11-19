@@ -70,7 +70,8 @@ var GROUPS = {
   "정사지간": { field: "지략", schools: { "무림맹": ["조사", "화술"], "상회": ["계략", "상술"], "표국": ["지리", "중단전"], "낭인": ["무공학", "간파"], "금의위/동창": ["추적", "점혈"] } },
   "사도오천": { field: "강호", schools: { "패검종": ["기세", "단련"], "암야전": ["잠행", "궁"], "군마녹림": ["인맥", "부"], "장강수로채": ["도구", "삭"], "흑상": ["기만", "손놀림"] } },
   "천마신교": { field: "술법", schools: { "교주궁": ["섭혼", "마기"], "병마령": ["연단", "병법"], "비연각": ["점술", "필"], "요왕장": ["둔갑", "상단전"], "혈교": ["저주", "하단전"] } },
-  "세외": { field: "외공", schools: { "북해빙궁": ["장", "음기"], "포달랍궁": ["지", "법력"], "동영": ["보법", "도"], "서역": ["조", "환술"], "천축": ["각", "방술"], "해동": ["초혼", "예술", "도"], "북원": ["경공", "궁"] } }
+  "세외": { field: "외공", schools: { "북해빙궁": ["장", "음기"], "포달랍궁": ["지", "법력"], "동영": ["보법", "도"], "서역": ["조", "환술"], "천축": ["각", "방술"], "해동": ["초혼", "예술", "도"], "북원": ["경공", "궁"] } },
+  "실전문파": { field: "문파마다", needBg: "마지막 전인(最後傳人)", sf: { "아미파": "내공", "청성파": "병기", "공동파": "내공", "점창파": "외공", "종남파": "내공", "창랑회": "강호", "의살문": "지략", "하생회": "술법", "무적여가": "외공" }, schools: { "아미파": ["점혈", "암기"], "청성파": ["검", "신법"], "공동파": ["권", "하단전"], "점창파": ["지", "경공"], "종남파": ["검", "음기"], "창랑회": ["도", "기세"], "의살문": ["암기", "추적"], "하생회": ["법력", "섭혼"], "무적여가": ["권", "봉"] } }
 };
 var FORMS = [
   { k: "연환(連環)형", f: "연환", e: "이번 차례에 공격 무공 하나를 코스트 없이 3번까지 연달아 쓴다. 2번째부터 명중 판정 유리점 1. 기 소진 없음" },
@@ -1126,9 +1127,10 @@ function atkOpts(c) {
    익힌 특기 5, 위아래 +1, 옆 분야 +2 (갭이 메워져 있으면 +1), 끝 연결은 선택, 최대 24.
    갭 수동 설정을 끄면 계열 전문분야 양옆 갭이 메워진다. 갭 g는 FIELDS[g-1]과 FIELDS[g] 사이 (0 = 술법-병기). */
 var GAP_NAMES = ["술법-병기", "병기-외공", "외공-내공", "내공-강호", "강호-지략", "지략-술법"];
+function grpOf(g, s) { var G = GROUPS[g]; return G && G.sf && G.sf[s] ? Object.assign({}, G, { field: G.sf[s] }) : G; }
 function gapFilled(c, g) {
   if (c.gapManual) return !!(c.gaps || [])[g];
-  var home = GROUPS[c.group] && GROUPS[c.group].field; if (!home) return false;
+  var hg = grpOf(c.group, c.school), home = hg && hg.field; if (!home) return false;
   return FIELDS[(g + 5) % 6] === home || FIELDS[g] === home;
 }
 function targets(c) {
@@ -1165,12 +1167,12 @@ function cur() { var c = chars.filter(function (x) { return x.id === curId; })[0
 function save() { store("wx-chars", chars); store("wx-cur", curId); var c = chars.filter(function (x) { return x.id === curId; })[0]; if (c && c.pub) queuePub(c); }
 
 function isGeneral(r) { return r.g === "범용" || r.s === "범용"; }
-function schoolMatch(r, c) { return c.school && (norm(r.s) === norm(c.school) || norm(r.g) === norm(c.school)); }
+function schoolMatch(r, c) { return c.school && (norm(r.s) === norm(c.school) || norm(r.g) === norm(c.school) || (!!c.group && norm(r.s) === norm(c.group))); }
 
 function renderBuilder() {
   var c = cur();
   var L = LIMITS[c.lv];
-  var grp = GROUPS[c.group];
+  var grp = grpOf(c.group, c.school);
   var cond = grp && grp.schools[c.school] || [];
   var skillsBy = {};
   (DATA.skills || []).forEach(function (s) { (skillsBy[s.f] = skillsBy[s.f] || []).push(s); });
@@ -1392,7 +1394,7 @@ function modBalance(o, L) {
 function find(list, n) { var r = list.filter(function (x) { return x.n === n; })[0]; if (!r && window.WX_RENAME && WX_RENAME[n]) { var n2 = WX_RENAME[n]; r = list.filter(function (x) { return x.n === n2; })[0]; } return r || { n: n, e: "(시트에서 찾을 수 없음)" }; }
 
 function checks(c) {
-  var L = LIMITS[c.lv], g = GROUPS[c.group], out = [];
+  var L = LIMITS[c.lv], g = grpOf(c.group, c.school), out = [];
   function add(ok, msg) { out.push([ok, msg]); }
   add(!!c.school, c.school ? "문파: " + c.group + " · " + c.school : "문파를 고르세요");
   add(c.skills.length === L.sk, "특기 " + c.skills.length + "/" + L.sk);
@@ -1402,6 +1404,7 @@ function checks(c) {
     var inField = c.skills.filter(function (s) { return (DATA.skills || []).some(function (x) { return x.n === s && x.f === g.field; }); }).length;
     add(inField >= 2, g.field + " 분야 특기 " + inField + "개 (2개 이상)");
   }
+  if (g && g.needBg && c.school) add(c.bg.indexOf(g.needBg) >= 0, "배경 장점 「" + g.needBg.replace(/\(.*$/, "") + "」(" + c.group + "로 시작하려면 반드시)");
   add(c.mg.length === L.mg, "무공 " + c.mg.length + "/" + L.mg + " (접근전 공격 빼고)");
   add(!!c.atk, c.atk ? "접근전 공격 《" + c.atk + "》" : "접근전 공격 지정특기를 고르세요");
   var pc = bgSplit(c);
@@ -1769,7 +1772,7 @@ var NICK = {
 };
 var ORIGIN = ["시골 서당 훈장의 자식", "몰락한 무가의 막내", "객잔 주방에서 자란 고아", "표국 마부의 아들딸", "관아 포졸 집안", "떠돌이 약장수 밑에서 큰 아이", "강가 뱃사공 집안", "마계를 피해 온 피난민", "이름난 문파의 잡역 제자", "장원 하인의 자식", "산적에게 길러진 아이", "사당지기 노인의 손주"];
 var REASON = ["사부의 원수를 찾아서", "사라진 가족의 행방을 쫓아서", "사문의 비급을 되찾으려고", "빚을 갚을 돈을 벌려고", "천마를 끝낸다는 소문을 듣고", "입마한 형제를 거두려고", "문파의 명을 받아서", "이름을 떨치고 싶어서", "마기를 늦추는 약을 구하려고", "약조를 지키려고", "쫓기는 몸이라서", "제 무공의 끝을 보려고"];
-function toneOf(group) { return group === "사도오천" || group === "천마신교" ? "dark" : group === "세외" || group === "정사지간" ? "mid" : "light"; }
+function toneOf(group) { return group === "사도오천" || group === "천마신교" ? "dark" : group === "세외" || group === "정사지간" || group === "실전문파" ? "mid" : "light"; }
 function rollName(group, school) {
   var N = NAMES;
   if (school === "해동") return pick(N.joseon.sur) + pick(N.joseon.giv) + pick(N.joseon.giv);
@@ -1791,6 +1794,7 @@ function rollChar(opt) {
   var lv = LEVELS.indexOf(opt.lv) >= 0 ? opt.lv : "삼류", L = LIMITS[lv];
   var group = GROUPS[opt.group] ? opt.group : pick(Object.keys(GROUPS)), G = GROUPS[group];
   var school = G.schools[opt.school] ? opt.school : pick(Object.keys(G.schools));
+  G = grpOf(group, school);
   var c = blankChar(); c.lv = lv; c.group = group; c.school = school;
   var allSk = DATA.skills || [], fieldOf = {}; allSk.forEach(function (s) { fieldOf[s.n] = s.f; });
   /* 이 문파·범용 무공 가운데 이 경지에서 익힐 수 있는 것 */
@@ -1816,11 +1820,12 @@ function rollChar(opt) {
   c.atk = wpick(c.skills, function (n) { return fieldOf[n] === "외공" || fieldOf[n] === "병기" ? 3 : 1; }) || "";
   /* 3. 배경: 0 ~ 경지 한도 사이의 장점, 같은 수의 단점(자기 문파 것을 조금 더 자주) */
   var k = rnd(L.bg + 1), bgs = DATA.bg.filter(function (r) { return isGeneral(r) || schoolMatch(r, c); });
-  var CLASH = [["무면", "당당정정"]];
+  var CLASH = [["무면", "당당정정"], ["마지막 전인", "유맥"]];
   function has(x) { return c.bg.some(function (b) { return splitName(b)[0] === x; }); }
   function clash(n) { var m = splitName(n)[0]; return CLASH.some(function (p) { var i = p.indexOf(m); return i >= 0 && has(p[1 - i]); }); }
+  if (G.needBg) { k = Math.max(k, 1); c.bg.push(G.needBg); }
   ["장점", "단점"].forEach(function (t) {
-    for (var i = 0; i < k; i++) { var r = wpick(bgs.filter(function (b) { return b.t === t && c.bg.indexOf(b.n) < 0 && !clash(b.n); }), function (b) { return schoolMatch(b, c) ? 2 : 1; }); if (r) c.bg.push(r.n); }
+    for (var i = (t === "장점" && G.needBg ? 1 : 0); i < k; i++) { var r = wpick(bgs.filter(function (b) { return b.t === t && c.bg.indexOf(b.n) < 0 && !clash(b.n); }), function (b) { return schoolMatch(b, c) ? 2 : 1; }); if (r) c.bg.push(r.n); }
   });
   /* 4. 보급품 3개 */
   var sup = DATA.items.filter(function (r) { return r.t === "보급품"; });
