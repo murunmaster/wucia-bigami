@@ -246,7 +246,8 @@
       sel("gm-cat", "cat", "분류", uniq(GM.gibo.map(function (r) { return r.cat; })), GM.f.cat) +
       sel("gm-src", "src", "획득처", uniq(GM.gibo.map(function (r) { return r.src; })), GM.f.src) +
       sel("gm-st", "st", "상태", STATUS, GM.f.st) +
-      sel("gm-gp", "gp", "자리", uniq(giboSorted(GM.gibo).map(function (x) { return x.p.name; })), GM.f.gp) + "</div>";
+      sel("gm-gp", "gp", "자리", uniq(giboSorted(GM.gibo).map(function (x) { return x.p.name; })), GM.f.gp) + "</div>" +
+      '<p class="hint gm-prize-rule"><b>프라이즈</b>: 비밀이 붙은 물건. 가진 자만 그 비밀을 안다(GM이 쪽지로 건넨다). 정보 판정으로는 알 수 없고 건네받거나 빼앗아야 한다. 전투에서 가진 자가 쓰러지면 그 칸에 떨어지고, 인접한 캐릭터가 행동 없이 줍는다. <b>단서</b>: 구역에 박힌 비석·석각·벽·서가. 옮길 수 없고, 그 구역에서 지정 특기 판정에 성공하면 비밀을 얻는다. 탁본·사본을 뜨면(《예술》) 같은 비밀의 프라이즈가 된다.</p>';
   }
 
 
@@ -272,7 +273,7 @@
     });
   }
   var ST_ORDER = ["배치", "보유", "발견", "공개", "미정"], ST_LABEL = { "보유": "보유(소지)" };
-  var CAT_ORDER = ["병기", "기보", "서책", "단약", "재료"];
+  var CAT_ORDER = ["병기", "기보", "서책", "단약", "재료", "프라이즈", "단서"];
   var KIND_ORDER = ["지역", "문파", "명승", "세외"];
   function giboPlace(r) {
     var m = r.map ? mapById(r.map) : null;
