@@ -78,12 +78,51 @@
     var t = L.topics.filter(function (x) { return x.k === key; })[0];
     return { head: '<div class="lbl">이야기' + (t.grp ? " · " + esc(t.grp) : "") + "</div><h1>" + esc(t.k) + "</h1>", md: t.md };
   }
+  var GHAN = { "오대문파": "五大門派", "오대세가": "五大世家", "정사지간": "正邪之間", "사도오천": "邪道五天", "천마신교": "天魔神敎", "세외": "世外", "실전문파": "失傳門派" };
+  function firstLine(md) { var m = /^>\s*(.+)$/m.exec(md || ""); return m ? m[1].replace(/[*_]/g, "") : ""; }
+  function firstSentence(t) { t = String(t || "").split("\n\n")[0].replace(/\*\*/g, ""); var m = /^(.+?[다.])(\s|$)/.exec(t); return m ? m[1] : t; }
   function intro() {
-    return '<div class="doc rich lore-intro"><p>마도천하 원년은 1465년이다. 천마가 등선한 해이자, 사흘 동안 검은 비가 내린 해다. 이 탭은 그 전과 뒤의 강호를 시대별로, 문파별로 적는다.</p>' +
-      '<h2>여섯 갈래</h2><div class="lore-groups">' + L.groups.map(function (g) {
-        return '<section class="lore-g"><h3>' + esc(g.k) + "</h3>" + md2html(g.d.split("\n\n")[0]) + '<p class="lore-sects">' + g.sects.map(function (s) { return '<a href="#lore-sect-' + slug(s) + '">' + esc(s) + "</a>"; }).join(" · ") + "</p></section>";
-      }).join("") + "</div>" +
+    var gs = L.groups.map(function (g) {
+      var d = firstSentence(g.d);
+      return '<section class="lt-g"><h3>' + esc(g.k) + (GHAN[g.k] ? '<span class="han">' + GHAN[g.k] + "</span>" : "") + "</h3>" + (d && !/^\*\*/.test(g.d) ? '<p class="lt-gd">' + esc(d) + "</p>" : "") +
+        '<p class="lt-gs">' + g.sects.map(function (s) { return '<a href="#lore-sect-' + slug(s) + '">' + esc(s) + "</a>"; }).join('<i aria-hidden="true">·</i>') + "</p></section>";
+    }).join("");
+    var es = L.eras.map(function (e) {
+      return '<li><a href="#lore-era-' + slug(e.k) + '"><span class="lt-ew">' + esc(e.when || "") + '</span><span class="lt-en">' + esc(e.k) + '</span><span class="lt-el">' + esc(firstLine(e.md)) + "</span></a></li>";
+    }).join("");
+    return '<div class="doc rich lore-intro"><p class="lt-preface">마도천하 원년은 1465년이다. 천마가 등선한 해이자, 사흘 동안 검은 비가 내린 해다. 이 책은 그 전과 뒤의 강호를 시대별로, 문파별로 적는다.</p>' +
+      '<h2>일곱 갈래</h2><div class="lt-groups">' + gs + "</div>" +
+      '<h2>열 개의 시대</h2><ol class="lt-eras">' + es + "</ol>" +
       '<h2>연대의 기준</h2>' + md2html(L.basis) + "</div>";
+  }
+  /* 렌더 뒤 꾸밈: 제사·속성 표·훅 표·흔적·열전 머리·주석·장 차례 */
+  function decorate(root) {
+    var art = root.querySelector("#lore-doc"); if (!art) return;
+    var first = art.firstElementChild;
+    if (first && first.tagName === "BLOCKQUOTE") first.classList.add("lt-epi");
+    [].forEach.call(art.querySelectorAll("table"), function (t) {
+      var ths = [].map.call(t.querySelectorAll("thead th"), function (x) { return x.textContent.trim(); });
+      if (ths.length && ths.every(function (x) { return !x; })) { t.classList.add("lt-kv"); var th = t.querySelector("thead"); if (th) th.remove(); }
+      else if (ths[0] === "훅") t.classList.add("lt-hook");
+      if (ths.length === 2 && !ths.every(function (x) { return !x; }) && ths[0] !== "훅") t.classList.add("lt-two");
+    });
+    [].forEach.call(art.querySelectorAll("p, li"), function (p) {
+      var h = p.innerHTML;
+      if (/^\s*⟶/.test(h)) { p.classList.add("lt-trace"); p.innerHTML = h.replace(/^\s*⟶\s*/, ""); return; }
+      if (p.tagName === "P") {
+        var m = /^<strong>([^<]+)<\/strong>\s*[—–-]\s*([^\n<]+)(?:\n|$)/.exec(h);
+        if (m) { p.classList.add("lt-entry"); p.innerHTML = '<span class="lt-eh"><b>' + m[1] + "</b><i>" + m[2] + "</i></span>" + h.slice(m[0].length); return; }
+        if (/^<em>[^<]+<\/em>$/.test(h.trim())) p.classList.add("lt-note");
+      }
+    });
+    var hs = [].filter.call(art.querySelectorAll("h2"), function (x) { return x.textContent.trim(); });
+    hs.forEach(function (x, i) { x.id = "lt-s" + i; });
+    if (hs.length >= 3) {
+      var nav = document.createElement("nav"); nav.className = "lt-chap"; nav.setAttribute("aria-label", "이 장의 차례");
+      nav.innerHTML = '<span class="lbl">차례</span>' + hs.map(function (x, i) { return '<a href="#" data-lts="' + i + '">' + esc(x.textContent.replace(/\s*🔒\s*/g, "").trim()) + "</a>"; }).join("");
+      var after = art.querySelector(".lt-epi"); if (after) after.after(nav); else art.prepend(nav);
+      nav.onclick = function (ev) { var a = ev.target.closest("[data-lts]"); if (!a) return; ev.preventDefault(); var t = document.getElementById("lt-s" + a.dataset.lts); if (t) t.scrollIntoView({ behavior: "smooth", block: "start" }); };
+    }
   }
   function render(full, view) {
     last = [full, view];
@@ -103,8 +142,9 @@
         '<nav class="pager">' + (pv ? '<a href="' + href(pv) + '"><span class="lbl">이전</span>' + esc(pv) + "</a>" : "<span></span>") + (nx ? '<a class="next" href="' + href(nx) + '"><span class="lbl">다음</span>' + esc(nx) + "</a>" : "<span></span>") + "</nav>";
     }
     var sel = '<select class="toc-select" id="lore-sel" aria-label="세계관 항목">' + (p.mode === "era" ? '<option value="lore">처음</option>' : "") + keys.map(function (k) { return '<option value="lore-' + p.mode + "-" + slug(k) + '"' + (k === p.key ? " selected" : "") + ">" + esc(k) + "</option>"; }).join("") + "</select>";
-    view.innerHTML = '<div class="rules lore"><nav class="toc" aria-label="세계관 목차">' + (p.mode === "era" ? '<div class="toc-page' + (!p.key ? " on" : "") + '"><a href="#lore">처음 — 강호사</a></div>' : "") + toc(p.mode, p.key) + '</nav><div style="min-width:0">' + sel + main + "</div></div>";
+    view.innerHTML = '<div class="rules lore-tab"><nav class="toc" aria-label="세계관 목차">' + (p.mode === "era" ? '<div class="toc-page' + (!p.key ? " on" : "") + '"><a href="#lore">처음 — 강호사</a></div>' : "") + toc(p.mode, p.key) + '</nav><div style="min-width:0">' + sel + main + "</div></div>";
     wrapTables(view);
+    decorate(view);
     var s = view.querySelector("#lore-sel"); if (s) s.onchange = function (ev) { location.hash = ev.target.value; };
   }
   function rerender() { if (last) render(last[0], last[1]); }
