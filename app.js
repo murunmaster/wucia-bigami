@@ -1810,7 +1810,9 @@ function rollChar(opt) {
   while (c.skills.length < L.sk && guard++ < 50) addSk(allSk, function (s) { return 0.4 + (freq[s.n] || 0) + (s.f === G.field ? 1 : 0); });
   /* 2. 무공: 문파 무공을 먼저, 익힌 특기로 쓰는 공격 무공이 적어도 하나 */
   function usable(r) { return !r.sk || r.sk === "—" || c.skills.indexOf(r.sk) >= 0; }
-  function wMg(r) { return (schoolMatch(r, c) ? 3 : 1) * (usable(r) ? 3 : 0.4) * (r.t === "장비" ? 0.8 : 1) * (1 + 0.15 * lvIdx(r.lv)); }
+  /* 문파 무공이 적은 문파(실전문파 7장 안팎)는 문파 무공을 더 무겁게 뽑아 다른 문파와 비슷한 몫이 되게 한다 */
+  var ownN = pool.filter(function (r) { return schoolMatch(r, c); }).length, ownW = 3 * Math.max(1, Math.min(5, 20 / Math.max(1, ownN)));
+  function wMg(r) { return (schoolMatch(r, c) ? ownW : 1) * (usable(r) ? 3 : 0.4) * (r.t === "장비" ? 0.8 : 1) * (1 + 0.15 * lvIdx(r.lv)); }
   function addMg(cands) { cands = cands.filter(function (r) { return c.mg.indexOf(r.n) < 0; }); var r = wpick(cands, wMg); if (r) c.mg.push(r.n); return r; }
   var atk = pool.filter(function (r) { return r.t === "공격" && r.sk && c.skills.indexOf(r.sk) >= 0; });
   addMg(atk.filter(function (r) { return schoolMatch(r, c); }).length ? atk.filter(function (r) { return schoolMatch(r, c); }) : atk.length ? atk : pool.filter(function (r) { return r.t === "공격"; }));
