@@ -21,7 +21,7 @@
   function toks() { return R && R.tk ? Object.keys(R.tk).map(function (id) { return Object.assign({ id: id }, R.tk[id]); }) : []; }
   function tok(id) { return R && R.tk && R.tk[id] ? Object.assign({ id: id }, R.tk[id]) : null; }
   function ref() { return DB.collection("rooms").doc(RID); }
-  function up(o) { return ref().update(o).catch(function (err) { toast("반영하지 못했어요 (" + (err && err.code || "오류") + ")"); }); }
+  function up(o) { if (JEM && o) { o["tk." + JEM + ".em"] = null; JEM = null; } return ref().update(o).catch(function (err) { toast("반영하지 못했어요 (" + (err && err.code || "오류") + ")"); }); }
   function who() { var t = tok(SEL); return (t && ctrl(t) ? t.n : ME.name) || "협객"; }
   function ent(m, k, w) { return { i: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t: Date.now(), w: w || who(), m: m, k: k || "" }; }
   function say(m, k, extra, w) { var o = extra || {}, en = ent(m, k, w); o.log = FV() ? FV().arrayUnion(en) : (R.log || []).concat([en]).slice(-250); return up(o); }
@@ -40,12 +40,14 @@
   /* ── 주사위 ── */
   function d6() { return 1 + Math.floor(Math.random() * 6); }
   /* 판정. 유리·불리·수정치는 한 번 쓰면 보통으로 돌아간다. tv 0 = 모름, 99 = 못 함. line = 주화입마 선 */
-  function judge(tv, line, mob, flat, adv0) {
-    var adv = ADV + (adv0 || 0), fl = MOD + (flat || 0), n = 2 + Math.min(4, Math.abs(adv)), all = [], i; ADV = 0; MOD = 0;
+  var JEM = null;
+  function judge(tv, line, mob, flat, adv0, who) {
+    var emv = who && who.em && who.em.v ? who.em.v : 0; if (emv) JEM = who.id;
+    var adv = ADV + (adv0 || 0), fl = MOD + (flat || 0) + emv, n = 2 + Math.min(4, Math.abs(adv)), all = [], i; ADV = 0; MOD = 0;
     if (tv >= 99) return { ok: false, txt: "판정할 수 없다(잃은 분야·익히지 않은 특기)", none: true };
     for (i = 0; i < n; i++) all.push(d6());
     var s = all.slice().sort(function (a, b) { return adv < 0 ? a - b : b - a; }), raw = s[0] + s[1], sum = raw + fl, sp = s[0] === 6 && s[1] === 6, ok = null, stun = false;
-    var txt = "2D6" + (adv ? (adv > 0 ? " 유리점 " : " 불리점 ") + Math.abs(adv) + " [" + all.join(",") + "]" : "") + " → " + s[0] + "+" + s[1] + (fl ? (fl > 0 ? "+" : "") + fl : "") + "=" + sum;
+    var txt = "2D6" + (adv ? (adv > 0 ? " 유리점 " : " 불리점 ") + Math.abs(adv) + " [" + all.join(",") + "]" : "") + " → " + s[0] + "+" + s[1] + (fl ? (fl > 0 ? "+" : "") + fl : "") + "=" + sum + (emv ? " (감정 수정 " + (emv > 0 ? "+1" : "−1") + (who.em.by ? " · " + who.em.by : "") + ")" : "");
     if (sp) { ok = true; txt += " 스페셜!"; }
     else if (line && sum < line) { ok = false; stun = !mob; txt += " (공력 " + line + " 미만) " + (mob ? "실패" : "주화입마!"); }
     else if (tv) { ok = sum >= tv; txt += " (목표 " + tv + ") " + (ok ? "성공" : "실패"); }
@@ -187,7 +189,7 @@
       else if (nm === "신룡파미") { ksN = Math.min(3, ks0 + 1); dmsg += " · 취기 " + ksN + (ks0 >= 3 ? " (취기 3이었으니 대미지 +1)" : ""); }
     }
     var chAdv = chain && t.ch.k >= 1 ? t.ch.adv : 0, sbT = r.t === "공격" && targets.length === 1 && sbOn(targets[0]) ? -2 : 0, sbMe = r.t === "공격" && sbOn(t) && !t.sb.used;
-    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, (cover ? -1 : 0) + (stg ? -1 : 0) + chAdv + sbT) : { ok: true, txt: "" };
+    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, (cover ? -1 : 0) + (stg ? -1 : 0) + chAdv + sbT, t) : { ok: true, txt: "" };
     var dm = r.t === "공격" ? dmgOf(r, j.sp) : null, u = U(t.id, { used: (t.used || 0) + (FREE || pre ? 0 : cost) }), pd = (R.pd || []).slice();
     if (dm && dmx && dm.ty !== "집단전") dm = { ty: dm.ty, n: dm.n + dmx };
     if (dm && sbMe && dm.ty !== "집단전") { dm = { ty: dm.ty, n: dm.n + t.sb.dm }; u["tk." + t.id + ".sb.used"] = true; dmsg += " · 신법: 대상 회피 불리점 1, 대미지 +" + t.sb.dm; }
@@ -334,7 +336,7 @@
     var ord = live.slice().sort(function (a, b) { return plot ? (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) : (b.g || 0) - (a.g || 0); });
     h += '<div class="bd-box"><b>' + (plot ? "말" : "행동 순서") + '</b><div class="bd-ord">' + (ord.map(function (k) {
       var gtxt = plot ? (k.gs ? (ctrl(k) || hasBg(k, "공명정대") || (k.id === (tok(SEL) || {}).sgjT && ctrl(tok(SEL))) ? "공력 " + k.g + (hasBg(k, "공명정대") ? "(공개)" : "") : "정함") : "아직") : "공력 " + (k.g || "–");
-      return '<button type="button" class="bd-row' + (k.id === SEL ? " on" : "") + (myTurn(k) ? " now" : "") + (!alive(k) || k.dn ? " dim" : "") + '" data-sel="' + e(k.id) + '"><span class="bd-dot ' + (k.s === "B" ? "b" : "a") + '"></span>' + e(k.n) + " <small>" + gtxt + " · ♥" + lifeLeft(k) + (myTurn(k) ? " · 지금 차례" : k.dn && !plot ? " · 마침" : "") + rstate(k) + (k.stun ? " · 주화입마" : "") + ((k.sts || []).length ? " · " + e(k.sts.join("·")) : "") + (k.mk ? " · 마기 " + k.mk : "") + (k.st ? " · " + e(k.st) : "") + "</small></button>";
+      return '<button type="button" class="bd-row' + (k.id === SEL ? " on" : "") + (myTurn(k) ? " now" : "") + (!alive(k) || k.dn ? " dim" : "") + '" data-sel="' + e(k.id) + '"><span class="bd-dot ' + (k.s === "B" ? "b" : "a") + '"></span>' + e(k.n) + " <small>" + gtxt + " · ♥" + lifeLeft(k) + (myTurn(k) ? " · 지금 차례" : k.dn && !plot ? " · 마침" : "") + rstate(k) + (k.stun ? " · 주화입마" : "") + ((k.sts || []).length ? " · " + e(k.sts.join("·")) : "") + (k.em ? " · 감정 " + (k.em.v > 0 ? "+1" : "−1") : "") + (k.mk ? " · 마기 " + k.mk : "") + (k.st ? " · " + e(k.st) : "") + "</small></button>";
     }).join("") || '<span class="hint">아직 말이 없어요.</span>') + (gone.length ? '<p class="hint">판을 떠남: ' + gone.map(function (k) { return e(k.n + "(" + k.out + ")"); }).join(", ") + "</p>" : "") + "</div></div>";
     if (t) {
       var can = ctrl(t), left = (t.g || 0) + clxOf(t) - (t.used || 0), g = shown(), ter = f.terr[g[t.y][t.x]];
@@ -342,6 +344,7 @@
       if (can) {
         if (plot && hasBg(t, "살기감지") && !t.sgj && t.gs) { var sgf = toks().filter(function (k) { return k.s !== t.s && alive(k) && k.gs; }); if (sgf.length) h += '<div class="bd-life">살기감지(전투당 1번): ' + sgf.map(function (k) { return '<button class="btn small" data-sgj="' + e(k.id) + '">' + e(k.n) + "</button>"; }).join("") + "</div>"; }
         if (!plot && R.phase === "move" && hasBg(t, "백전노장") && !t.bjn) h += '<div class="bd-gong" role="group" aria-label="백전노장">백전노장(전투당 1번, 다시 정하기) ' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="chip" data-g2="' + n + '">' + n + "</button>"; }).join("") + "</div>";
+        if (R.round) { var emOn = (t.sts || []).indexOf("망각") >= 0 ? "망각이라 쓸 수 없음" : t.emR === R.round ? "이번 라운드에 썼음" : ""; var emL = toks().filter(function (k) { return k.id !== t.id && alive(k); }); if (emL.length) h += '<div class="bd-life" role="group" aria-label="감정 수정">감정 수정(라운드 1번) ' + (emOn ? '<span class="hint">' + emOn + "</span>" : '<select id="bd-emt" aria-label="감정을 맺은 상대">' + emL.map(function (k) { return '<option value="' + e(k.id) + '">' + e(k.n) + (k.em ? " (" + (k.em.v > 0 ? "+1" : "−1") + " 걸림)" : "") + "</option>"; }).join("") + '</select><button class="btn small" data-emo="1">긍정 +1</button><button class="btn small" data-emo="-1">부정 −1</button>') + '<span class="hint"> 상대가 다음에 하는 판정 하나에</span></div>'; }
         if (plot) h += '<div class="bd-gong" role="group" aria-label="공력">공력 ' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="chip' + (t.gs && t.g === n ? " on" : "") + '" data-g="' + n + '">' + n + "</button>"; }).join("") + "</div>";
         else h += '<p class="hint">공력 ' + (t.g || "–") + " · 남은 코스트 " + Math.max(0, left) + " · 남은 이동 " + Math.max(0, (t.g || 0) - (t.mv || 0)) + (t.stun ? " · <b>주화입마</b>(이번 라운드 판정 불가)" : "") + "</p>";
         if (ph === "move" && myTurn(t)) h += '<div class="sheet-actions"><button class="btn small' + (MODE && MODE.type === "move" ? " primary" : "") + '" data-b="move">이동</button>' + (t.px != null ? '<button class="btn small" data-b="undo">이동 되돌리기</button>' : "") + '<button class="btn small primary" data-b="done">이동 마침</button></div>';
@@ -431,8 +434,8 @@
       var hit = function (pre, stun) { var u = { pd: rest }, ta = tok(p.a); if (stun) u["tk." + tb.id + ".stun"] = true; u["tk." + tb.id + ".rh"] = ta ? ta.n : (p.mn || "?"); if (ta) u["tk." + ta.id + ".rt"] = (ta.rt || []).concat([tb.n]); /* 라운드 상태: 맞음·맞힘 */ if (p.dm) u["tk." + tb.id + ".dq"] = (tb.dq || []).concat([{ ty: p.dm.ty, n: p.dm.n, mn: p.mn, g: p.g, r: p.r, sim: !!p.sim }]); say(pre + " — 맞음: 【" + p.mn + "】 " + p.e, "bad", u, tb.n); };
       var line = R.phase === "plot" ? 0 : stunLine(tb);
       if (act === "nododge") { hit("회피하지 않음"); return; }
-      if (act === "flee") { var jf = judge(TN(tb, "신법"), line, !tb.c); if (jf.ok) { var u2 = U(tb.id, { out: "도주" }); u2.pd = rest.filter(function (x) { return x.b !== tb.id; }); say("도주 《신법》 " + jf.txt + " — 전투에서 벗어난다(전과 없음)", "ok", u2, tb.n); } else hit("도주 《신법》 " + jf.txt, jf.stun); return; }
-      var j = judge(TN(tb, p.sk), line, !tb.c, R.ter === "고소" ? -2 : 0, p.ea || 0), head = "회피" + (p.sk ? " 《" + p.sk + "》 " : " ") + j.txt + (p.ea ? " (신법: 불리점 1)" : "");
+      if (act === "flee") { var jf = judge(TN(tb, "신법"), line, !tb.c, 0, 0, tb); if (jf.ok) { var u2 = U(tb.id, { out: "도주" }); u2.pd = rest.filter(function (x) { return x.b !== tb.id; }); say("도주 《신법》 " + jf.txt + " — 전투에서 벗어난다(전과 없음)", "ok", u2, tb.n); } else hit("도주 《신법》 " + jf.txt, jf.stun); return; }
+      var j = judge(TN(tb, p.sk), line, !tb.c, R.ter === "고소" ? -2 : 0, p.ea || 0, tb), head = "회피" + (p.sk ? " 《" + p.sk + "》 " : " ") + j.txt + (p.ea ? " (신법: 불리점 1)" : "");
       if (j.ok) { var uo = { pd: rest }; if (drunk(tb) && tb.jp === R.round) { uo["tk." + tb.id + ".ks"] = Math.min(3, (tb.ks || 0) + 1); uo["tk." + tb.id + ".jp"] = 0; head += " · 취팔선보: 취기 " + Math.min(3, (tb.ks || 0) + 1); } say(head, "ok", uo, tb.n); return; }
       if (j.ok === null) { say(head + " — 맞았다면 '그냥 맞기'를 누르세요", "", {}, tb.n); return; }
       hit(head, j.stun); return;
@@ -506,6 +509,7 @@
     var el = ev.target, b = el.closest("[data-b]"), t = tok(SEL), v;
     if (el.closest("[data-sel]")) { SEL = el.closest("[data-sel]").dataset.sel; MODE = null; draw(true); return; }
     if (el.closest("[data-mobg]") && isGm()) { var gv = +el.closest("[data-mobg]").dataset.mobg, um = {}; toks().forEach(function (k) { if (!k.c && alive(k)) U(k.id, { g: gv, gs: true }, um); }); if (Object.keys(um).length) up(um); else toast("졸개가 없어요"); return; }
+    if (el.closest("[data-emo]") && t && ctrl(t)) { if (t.emR === R.round || (t.sts || []).indexOf("망각") >= 0) return; var emt = tok((document.getElementById("bd-emt") || {}).value); if (!emt) return; var ev0 = +el.closest("[data-emo]").dataset.emo, cur0 = emt.em && emt.em.v || 0, nv = Math.max(-1, Math.min(1, cur0 + ev0)); var ue2 = U(t.id, { emR: R.round }); ue2["tk." + emt.id + ".em"] = nv ? { v: nv, by: t.n } : null; say("감정 수정 — " + t.n + " → " + emt.n + "의 다음 판정 " + (ev0 > 0 ? "+1" : "−1") + (cur0 && !nv ? " (걸려 있던 수정과 상쇄)" : cur0 === nv ? " (이미 최대 ±1)" : ""), "sys", ue2, t.n); return; }
     if (el.closest("[data-sgj]") && t && ctrl(t) && !t.sgj) { var sk2 = tok(el.closest("[data-sgj]").dataset.sgj); if (!sk2) return; toast("살기감지 — " + sk2.n + "의 공력은 " + sk2.g); up(U(t.id, { sgj: true, sgjT: sk2.id })); return; }
     if (el.closest("[data-g2]") && t && ctrl(t) && !t.bjn) { var g2 = +el.closest("[data-g2]").dataset.g2; say("백전노장 — 공력을 " + g2 + "(으)로 다시 정한다", "sys", U(t.id, { g: g2, bjn: true }), t.n); return; }
     if (el.closest("[data-g]") && t && ctrl(t)) { up(U(t.id, { g: +el.closest("[data-g]").dataset.g, gs: true })); return; }
@@ -548,7 +552,7 @@
       if (act === "edit") { MODE = MODE && MODE.type === "edit" ? null : { type: "edit", brush: "#", temp: false }; draw(true); return; }
       if (act === "code") { var rows2 = document.getElementById("bd-code").value.split(/\r?\n/).map(function (r) { return r.replace(/\s/g, ""); }).filter(Boolean); if (rows2.length !== 6 || rows2.some(function (r) { return r.length !== 6; })) { toast("맵 코드는 6줄, 줄마다 6글자여야 해요"); return; } setMap(rows2); return; }
     }
-    if (act === "roll") { v = +document.getElementById("bd-tv").value || 0; var lb = document.getElementById("bd-lb").value.trim(), tt = t && ctrl(t) ? t : null; if (tt && tt.stun) { toast("주화입마라 판정할 수 없어요"); return; } var j2 = judge(v, tt && R.phase !== "plot" ? stunLine(tt) : 0, tt && !tt.c); if (SECRET && isGm()) { toast((lb ? lb + " " : "") + j2.txt); draw(true); return; } say((lb ? lb + " " : "") + j2.txt, j2.ok === false ? "bad" : j2.ok ? "ok" : "", tt && j2.stun ? U(tt.id, { stun: true }) : {}); return; }
+    if (act === "roll") { v = +document.getElementById("bd-tv").value || 0; var lb = document.getElementById("bd-lb").value.trim(), tt = t && ctrl(t) ? t : null; if (tt && tt.stun) { toast("주화입마라 판정할 수 없어요"); return; } var j2 = judge(v, tt && R.phase !== "plot" ? stunLine(tt) : 0, tt && !tt.c, 0, 0, tt); if (SECRET && isGm()) { if (JEM) { var ue = {}; up(ue); } toast((lb ? lb + " " : "") + j2.txt); draw(true); return; } say((lb ? lb + " " : "") + j2.txt, j2.ok === false ? "bad" : j2.ok ? "ok" : "", tt && j2.stun ? U(tt.id, { stun: true }) : {}); return; }
     if (act === "d6") { var r1 = d6(); if (SECRET && isGm()) { toast("1D6 → " + r1); return; } say("1D6 → " + r1); return; }
     if (act === "addme") { var c = pcList()[+document.getElementById("bd-ch").value]; if (!c) { toast("인물지에서 캐릭터를 먼저 만들어 주세요"); return; } addTok({ n: c.name || "협객", o: ME.id, on: ME.name, s: document.getElementById("bd-sd").value, life: [1, 1, 1, 1, 1, 1], ex: (c.bg || []).some(function (n) { return /^강골/.test(n); }) ? 1 : 0, c: slim(c), cid: c.id || "" }); return; }
     if (act === "addnpc" && isGm()) { var np = WX_GM_NPCS().filter(function (n) { return n.id === document.getElementById("bd-npc").value; })[0]; if (np) addTok({ n: np.n, o: ME.id, on: "GM", s: "B", life: [1, 1, 1, 1, 1, 1], ex: 0, c: slim(np.c), nid: np.id }); return; }
@@ -567,7 +571,7 @@
     else if (act === "ex-" || act === "ex+") up(U(t.id, { ex: Math.max(0, (t.ex || 0) + (act === "ex+" ? 1 : -1)) }));
     else if (/^(mk|ks|pm)[-+]$/.test(act)) { var key = act.slice(0, 2), o2 = {}; o2[key] = Math.max(0, (t[key] || 0) + (act.slice(2) === "+" ? 1 : -1)); if (key === "mk") say("마기 " + o2.mk, "sys", U(t.id, o2), t.n); else up(U(t.id, o2)); }
     else if (act === "stx") up(U(t.id, { sts: (t.sts || []).filter(function (s) { return s !== b.dataset.s; }) }));
-    else if (act === "cure") { if (t.stun) { toast("주화입마라 판정할 수 없어요"); return; } var s = b.dataset.s, jc = judge(TN(t, CURE[s]), R.phase === "plot" ? 0 : stunLine(t), !t.c), uc = jc.ok ? U(t.id, { sts: (t.sts || []).filter(function (z) { return z !== s; }) }) : jc.stun ? U(t.id, { stun: true }) : {}; say(s + " 해제 《" + CURE[s] + "》 " + jc.txt, jc.ok ? "ok" : "bad", uc, t.n); }
+    else if (act === "cure") { if (t.stun) { toast("주화입마라 판정할 수 없어요"); return; } var s = b.dataset.s, jc = judge(TN(t, CURE[s]), R.phase === "plot" ? 0 : stunLine(t), !t.c, 0, 0, t), uc = jc.ok ? U(t.id, { sts: (t.sts || []).filter(function (z) { return z !== s; }) }) : jc.stun ? U(t.id, { stun: true }) : {}; say(s + " 해제 《" + CURE[s] + "》 " + jc.txt, jc.ok ? "ok" : "bad", uc, t.n); }
     else if (act === "stroll") { var s6 = d6(), st = STS[s6 - 1], sts = (t.sts || []).slice(); if (sts.indexOf(st) < 0) sts.push(st); say("상태이상표 " + s6 + ": " + st, "bad", U(t.id, { sts: sts }), t.n); }
     else if (act === "resheet") { var nc = pcList().filter(function (x) { return x.id === t.cid; })[0]; if (nc) { up(U(t.id, { c: slim(nc), n: nc.name || t.n })); toast("시트를 다시 읽었어요"); } else toast("이 기기에서 그 캐릭터를 찾지 못했어요"); }
     else if (act === "del") { if (b.dataset.sure !== "1") { b.dataset.sure = "1"; b.textContent = "한 번 더 누르면 뺌"; return; } var tk = Object.assign({}, R.tk); delete tk[t.id]; SEL = ""; MODE = null; say(t.n + " 퇴장", "sys", { tk: tk, pd: (R.pd || []).filter(function (p) { return p.a !== t.id && p.b !== t.id; }) }, "판"); }

@@ -1220,3 +1220,23 @@ window.WX_RENAME_MG = function (list, from) { var R = window.WX_RENAME_ALL || {}
     return d;
   };
 })();
+
+/* ═════════ 11-21 4차 — 감정 수정(전투)·내독체질 (루루 결정) ═════════ */
+(function () {
+  var EMO_OLD = "감정 수정은 최대 +-1까지만 가능하다.";
+  var EMO_ADD = " 감정 수정은 감정을 품은 쪽이 그 상대가 하는 판정에 건다. 긍정 감정이면 +1, 부정 감정이면 -1이고, 판정 주사위를 굴리기 전에 쓸지 고른다. 여러 사람이 걸어도 합쳐 +-1을 넘지 않는다. 전투 중에는 한 사람이 라운드에 1번만 쓸 수 있다. 망각 상태면 쓸 수 없다.";
+  var prevRules = window.WX_PATCH_RULES;
+  window.WX_PATCH_RULES = function (md) {
+    md = prevRules ? prevRules(md) : String(md || "");
+    if (md.indexOf(EMO_ADD.trim()) < 0 && md.indexOf(EMO_OLD) >= 0) md = md.replace(EMO_OLD, EMO_OLD + EMO_ADD);
+    return md;
+  };
+  var FIXBG = { "내독체질(耐毒體質)": "독 표식을 거는 무공(사천당가의 독 등)의 회피 판정에 유리점 1." };
+  var prev = window.WX_PATCH_DATA;
+  window.WX_PATCH_DATA = function (d) {
+    if (prev) d = prev(d);
+    if (!d) return d;
+    (d.bg || []).forEach(function (r) { if (FIXBG[r.n]) r.e = FIXBG[r.n]; });
+    return d;
+  };
+})();

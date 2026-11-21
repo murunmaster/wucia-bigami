@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -147,7 +147,7 @@
     /* 상시 수치 */
     f.passive.forEach(function (x) { if (x.conds.length) return; x.effs.forEach(function (e) { if (e.key === "hp" && !e.who) f.extra += e.v; }); });
     f.flags = {};
-    f.passive.forEach(function (x) { if (x.conds.length || x.lim) return; x.effs.forEach(function (e) { if (!e.sub && !e.v) return; if (["immovable", "nostun", "nohigh", "nowater", "nocold", "noterr", "rr", "endure", "nodeath", "lastround", "stunatk", "stunev", "lostok", "seehidden", "lurk", "nomvdebuff", "nopull", "stpick", "drunk", "ignoreg", "hdmulti", "bank", "debtback", "powmin", "powmax", "powmono", "dashr1", "noatkr1", "startst", "noselfst", "dmcap", "first", "seehid", "unarm", "killpay", "lostpen", "quick", "iaido", "openpow", "lastpow", "peek", "bloodadv", "regen", "barefoot", "keepdo"].indexOf(e.key) >= 0) f.flags[e.key] = e.arg || true; if (e.key === "immune") f.flags["im_" + e.arg] = true; }); });
+    f.passive.forEach(function (x) { if (x.conds.length || x.lim) return; x.effs.forEach(function (e) { if (!e.sub && !e.v) return; if (["immovable", "nostun", "nohigh", "nowater", "nocold", "noterr", "rr", "endure", "nodeath", "lastround", "stunatk", "stunev", "lostok", "seehidden", "lurk", "nomvdebuff", "nopull", "stpick", "drunk", "ignoreg", "hdmulti", "bank", "debtback", "powmin", "powmax", "powmono", "dashr1", "noatkr1", "startst", "noselfst", "dmcap", "first", "seehid", "unarm", "killpay", "lostpen", "quick", "iaido", "openpow", "lastpow", "peek", "bloodadv", "regen", "barefoot", "keepdo", "antidote", "nopose"].indexOf(e.key) >= 0) f.flags[e.key] = e.arg || true; if (e.key === "immune") f.flags["im_" + e.arg] = true; }); });
     if (f.flags.drunk) f.drunk = true;
     f.unparsed = f.mgs.filter(function (m) { var g = fxGaps(m.r.n); return g.unk || g.none; }).map(function (m) { return m.r.n; });
     f.ougi = (window.WX_OG ? WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")).list : (c.ougi || [])).filter(function (o) { return o && o.form; }).map(function (o, i) { return { i: i, name: o.name || "무명 오의", form: o.form, skill: o.skill, mods: o.mods || [] }; });
@@ -174,7 +174,9 @@
 
   function hpLeft(f) { return f.pool ? f.pool : FIELDS.filter(function (x) { return !f.lost[x]; }).length + f.extra; }
   function alive(f) { return !f.out; }
-  var EMO_NEG = ["불신", "분노", "질투", "모멸", "열등감", "살의"];
+  var EMO_NEG = ["불신", "분노", "질투", "모멸", "열등감", "살의"], EMO_POS = ["공감", "우정", "애정", "충성", "동경", "광신"];
+  /* 독 무공: 독 표식을 거는 무공(내독체질) */
+  function isPoison(a) { return !!a && (a.cl || []).some(function (c) { return c.effs.some(function (e) { return /^(mk|mkpop|mkdm)$/.test(e.key) && /^독/.test(String(e.arg || "")); }); }); }
   function isMon(f) { return f.grade === "이물" || (f.c && (f.c.kind === "괴력난신" || f.c.group === "괴력난신")) || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka"; }); }
   function isMg(f) { return f.grade === "이물" || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka"; }) || f.mgs.some(function (m) { return m.r.s === "마공"; }); }
 
@@ -431,13 +433,15 @@
     if (f.flags.lostpen && sk && f.lost[A.fieldOf(sk)]) adv -= 1;
     var adSk = 0; f.passive.forEach(function (cl) { cl.effs.forEach(function (e) { if (e.key === "adv" && !cl.conds.length && sk && e.arg.replace(/\d+$/, "") === sk) adSk += num(e.arg, 1); }); });
     adv += adSk;
+    if (o.isEv && f.flags.antidote && (o.poison || isPoison(o.atk))) adv += 1;
     if (f.instant && !o.noInstant) { var io = f.instant; f.instant = null; this.say(f.name + " — 오의 「" + io.name + "」(순간 성공)으로 " + why + " 성공", "og"); if (io.next) f.buffs.push({ key: "all", v: 1, left: 2, uses: 1 }); return { ok: true, sp: io.sp, sum: 10 }; }
     var tn = tnOf(f, sk);
     if (tn >= 99) { this.say(f.name + "은(는) 《" + sk + "》 판정을 할 수 없다", "dim"); return { ok: false, none: true, sum: 0 }; }
     if (f.flags.bloodadv && !o.noBlood && o.atk && (o.isHit || o.isEv) && (o.atk.dmg || 0) >= 2 && hpLeft(f) >= 4 && !f.pool) { this.say(f.name + " — 공혈: 피를 바쳐 유리점 2", "og"); this.hurt(f, "사격전", 1, null, { noreduce: true }); adv += 2; }
+    var emo = (o.isHit || o.isEv) && !o.noEmo ? this.emoMod(f) : 0;
     var k = 2 + Math.abs(adv), ds = []; for (var i = 0; i < Math.min(k, 6); i++) ds.push(d6());
     ds.sort(function (a, b) { return adv >= 0 ? b - a : a - b; });
-    var two = ds.slice(0, 2), sum = two[0] + two[1] + (o.flat || 0);
+    var two = ds.slice(0, 2), sum = two[0] + two[1] + (o.flat || 0) + emo;
     var sp = (two[0] === 6 && two[1] === 6) || (o.crit && sum >= o.crit && two[0] + two[1] >= o.crit);
     var ok = sp || sum >= tn;
     var fumLine = f.pow + (this.terrain === "악지" ? 1 : 0) + this.mod(f, "fum", o.foe, o.atk) + (o.fumAdd || 0) + (this.inZone(f, "rough").some(function (z) { return z.side !== f.side; }) ? 1 : 0);
@@ -447,12 +451,29 @@
     if ((!ok || fum) && f.flip && !o.noInstant) { var fo = f.flip; f.flip = null; f.ogUsed[fo.i] = true; f.ogUse++; this.say(f.name + " — 오의 「" + fo.name + "」(뒤집기)로 결과를 성공으로 바꾼다", "og"); return { ok: true, sum: 10 }; }
     if (fum) { ok = false; f.stun = true; }
     if (!ok && !o.isEv) f.R.missed = f.R.missed || (o.isHit ? true : false);
-    this.say(f.name + " " + why + " 《" + sk + "》 " + tn + "+ → [" + ds.join(",") + "]" + (adv ? (adv > 0 ? " 유리" : " 불리") + Math.abs(adv) : "") + (o.flat ? " " + o.flat : "") + " = " + sum + (sp ? " 스페셜!" : ok ? " 성공" : " 실패") + (fum ? " · 주화입마" : ""), sp ? "sp" : fum ? "fum" : ok ? "ok" : "no");
+    this.say(f.name + " " + why + " 《" + sk + "》 " + tn + "+ → [" + ds.join(",") + "]" + (adv ? (adv > 0 ? " 유리" : " 불리") + Math.abs(adv) : "") + (o.flat ? " " + o.flat : "") + (emo ? " 감정" + (emo > 0 ? "+1" : "−1") : "") + " = " + sum + (sp ? " 스페셜!" : ok ? " 성공" : " 실패") + (fum ? " · 주화입마" : ""), sp ? "sp" : fum ? "fum" : ok ? "ok" : "no");
     /* 수중 전장·수면: 판정에 실패하면 접근전 1점(만든 쪽의 수면은 자기 편에게 듣지 않는다) */
     if (!ok && !this._wet && alive(f) && !this.flag(f, "nowater") && (this.terrain === "수중" || this.cellOf(f) === "w" || this.inZone(f, "water").some(function (z) { return z.side !== f.side; }))) {
       this._wet = true; this.say(f.name + " — 물에 휩쓸린다", "hit"); this.hurt(f, "접근전", 1, null); this._wet = false;
     }
     return { ok: ok, sp: sp, fum: fum, sum: sum };
+  };
+
+  /* 감정 수정: 감정을 맺은 상대가 판정할 때 긍정 +1·부정 −1(합쳐 최대 ±1). 라운드에 1번, 쓸지 고른다. 망각이면 못 쓴다.
+     AI는 같은 편의 판정에 긍정, 다른 편의 판정에 부정을 건다. */
+  B.emoMod = function (f) {
+    var self = this, v = 0, pos = null, neg = null;
+    this.f.forEach(function (h) {
+      if (h === f || !alive(h) || h.st["망각"] || h._emoR === self.round) return;
+      (h.c && h.c.rel || []).forEach(function (r) {
+        if (!r || r.n !== f.name) return;
+        if (!pos && EMO_POS.indexOf(r.emo) >= 0 && h.side === f.side && !h.flags.nopose) pos = h;
+        if (!neg && EMO_NEG.indexOf(r.emo) >= 0 && h.side !== f.side) neg = h;
+      });
+    });
+    if (pos) { pos._emoR = this.round; v += 1; this.say(pos.name + " — 감정 수정: " + f.name + "의 판정 +1", "og"); }
+    if (neg) { neg._emoR = this.round; v -= 1; this.say(neg.name + " — 감정 수정: " + f.name + "의 판정 −1", "og"); }
+    return Math.max(-1, Math.min(1, v));
   };
 
   /* ── 버프·상태이상 ── */
@@ -723,7 +744,7 @@
       else if (w === "lowadj") list = tgt ? self.friends(owner).filter(function (g) { return cheb(g.pos, tgt.pos) <= 1 && hpLeft(g) <= 3; }).slice(0, 1) : [];
       list.forEach(function (t) {
         if ((w === "foe" || w === "foes") && t.side !== owner.side && !noev && ctx.evade !== false) {
-          var sk = evsk || ctx.sk; if (sk && !t.stun) { var ev = self.check(t, sk, 0, "회피"); if (ev.ok) return; }
+          var sk = evsk || ctx.sk; if (sk && !t.stun) { var ev = self.check(t, sk, 0, "회피", { foe: owner, isEv: true, poison: groups[w].some(function (e) { return e.key === "mk" && /^독/.test(String(e.arg || "")); }) }); if (ev.ok) return; }
         }
         groups[w].forEach(function (e) { self.applyEff(e, owner, t, Object.assign({}, ctx, { evsk: evsk }), ctx.dflt); });
       });
