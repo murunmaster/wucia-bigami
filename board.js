@@ -79,6 +79,8 @@
     return out;
   }
   /* 개방 취기: 취권을 익힌 말은 기세 칸을 취기로 쓴다(최대 3). 팔선 주사위·비틀거림·털어 내기·신걸아불사공을 판이 챙긴다 */
+  function hasBg(t, n) { return !!(t && t.c && (t.c.bg || []).some(function (x) { return String(x).indexOf(n) === 0; })); }
+  function quick(t) { return (hasBg(t, "쾌수") && !toks().some(function (k) { return alive(k) && k.id !== t.id && k.g === t.g && hasBg(k, "쾌수"); })) || (hasBg(t, "발도술") && R.round === 1); }
   function knows(t, n) { return !!(t && t.c && (t.c.mg || []).some(function (x) { return String(x).indexOf(n) === 0; })); }
   function drunk(t) { return knows(t, "취권"); }
   function ksName(t) { return drunk(t) ? "취기" : "기세"; }
@@ -205,7 +207,8 @@
     if (j.stun) u["tk." + t.id + ".stun"] = true;
     if (j.ok === false && !j.none && wet(t) && t.c) { u["tk." + t.id + ".dq"] = (t.dq || []).concat([{ ty: "접근전", n: 1, mn: "수중", r: R.round, g: R.cur }]); msg += " — 물에 휩쓸려 접근전 1점"; }
     if (j.ok !== false && targets.length && (r.t === "공격" || /회피/.test(r.e || ""))) {
-      var sim = toks().filter(function (k) { return alive(k) && k.g === t.g; }).length > 1;
+      var sim = toks().filter(function (k) { return alive(k) && k.g === t.g; }).length > 1 && !quick(t);
+      if (!sim && toks().filter(function (k) { return alive(k) && k.g === t.g; }).length > 1) dmsg += " · " + (hasBg(t, "쾌수") ? "쾌수" : "발도술") + ": 동시행동이어도 결과를 곧바로 처리";
       targets.forEach(function (b) { pd.push({ i: Math.random().toString(36).slice(2, 8), a: t.id, b: b.id, sk: sk, mn: bare(r.n), e: r.e || "", dm: dm, g: R.cur || 0, r: R.round, sim: sim, ea: sbMe ? -1 : 0 }); });
       u.pd = pd; if (j.sp && dm && dm.ty !== "집단전") msg += " (스페셜: 대미지 +1)";
     } else if (j.ok !== false && r.e) msg += " — " + r.e;
@@ -236,7 +239,7 @@
         '<circle cx="' + cx + '" cy="' + cy + '" r="54" fill="' + col + '" stroke="' + (sel ? "#fff" : "#1a1a1a") + '" stroke-width="' + (sel ? 9 : 4) + '"/>' +
         '<text x="' + cx + '" y="' + (cy + 2) + '" text-anchor="middle" font-size="' + (String(k.n).length > 3 ? 26 : 34) + '" font-weight="700" fill="#fff">' + e(String(k.n).slice(0, 4)) + "</text>" +
         '<text x="' + cx + '" y="' + (cy + 34) + '" text-anchor="middle" font-size="22" fill="#fff">' + (down ? "쓰러짐" : "♥" + lifeLeft(k) + (k.stun ? " 주화" : "")) + "</text>" +
-        (k.g && R.phase !== "plot" ? '<circle cx="' + (cx + 44) + '" cy="' + (cy - 44) + '" r="22" fill="#f4eede" stroke="#1a1a1a" stroke-width="3"/><text x="' + (cx + 44) + '" y="' + (cy - 34) + '" text-anchor="middle" font-size="28" font-weight="700" fill="#1a1a1a">' + k.g + "</text>" : "") +
+        (k.g && (R.phase !== "plot" || (k.gs && hasBg(k, "공명정대"))) ? '<circle cx="' + (cx + 44) + '" cy="' + (cy - 44) + '" r="22" fill="#f4eede" stroke="#1a1a1a" stroke-width="3"/><text x="' + (cx + 44) + '" y="' + (cy - 34) + '" text-anchor="middle" font-size="28" font-weight="700" fill="#1a1a1a">' + k.g + "</text>" : "") +
         (R.phase === "plot" && k.gs ? '<circle cx="' + (cx + 44) + '" cy="' + (cy - 44) + '" r="20" fill="#3f9b6a" stroke="#1a1a1a" stroke-width="3"/><text x="' + (cx + 44) + '" y="' + (cy - 36) + '" text-anchor="middle" font-size="22" fill="#fff">정</text>' : "") +
         ((k.sts || []).length ? '<text x="' + cx + '" y="' + (cy - 60) + '" text-anchor="middle" font-size="20" font-weight="700" fill="#fff" stroke="#1a1a1a" stroke-width="4" paint-order="stroke">' + e(k.sts.join("·")) + "</text>" : "") +
         (note ? '<text x="' + cx + '" y="' + (cy + 74) + '" text-anchor="middle" font-size="20" font-weight="700" fill="#fff" stroke="#1a1a1a" stroke-width="4" paint-order="stroke">' + note + "</text>" : "") + "</g>";
@@ -330,13 +333,15 @@
     var live = list.filter(function (k) { return !k.out; }), gone = list.filter(function (k) { return k.out; });
     var ord = live.slice().sort(function (a, b) { return plot ? (a.s < b.s ? -1 : a.s > b.s ? 1 : 0) : (b.g || 0) - (a.g || 0); });
     h += '<div class="bd-box"><b>' + (plot ? "말" : "행동 순서") + '</b><div class="bd-ord">' + (ord.map(function (k) {
-      var gtxt = plot ? (k.gs ? (ctrl(k) ? "공력 " + k.g : "정함") : "아직") : "공력 " + (k.g || "–");
+      var gtxt = plot ? (k.gs ? (ctrl(k) || hasBg(k, "공명정대") || (k.id === (tok(SEL) || {}).sgjT && ctrl(tok(SEL))) ? "공력 " + k.g + (hasBg(k, "공명정대") ? "(공개)" : "") : "정함") : "아직") : "공력 " + (k.g || "–");
       return '<button type="button" class="bd-row' + (k.id === SEL ? " on" : "") + (myTurn(k) ? " now" : "") + (!alive(k) || k.dn ? " dim" : "") + '" data-sel="' + e(k.id) + '"><span class="bd-dot ' + (k.s === "B" ? "b" : "a") + '"></span>' + e(k.n) + " <small>" + gtxt + " · ♥" + lifeLeft(k) + (myTurn(k) ? " · 지금 차례" : k.dn && !plot ? " · 마침" : "") + rstate(k) + (k.stun ? " · 주화입마" : "") + ((k.sts || []).length ? " · " + e(k.sts.join("·")) : "") + (k.mk ? " · 마기 " + k.mk : "") + (k.st ? " · " + e(k.st) : "") + "</small></button>";
     }).join("") || '<span class="hint">아직 말이 없어요.</span>') + (gone.length ? '<p class="hint">판을 떠남: ' + gone.map(function (k) { return e(k.n + "(" + k.out + ")"); }).join(", ") + "</p>" : "") + "</div></div>";
     if (t) {
-      var can = ctrl(t), left = (t.g || 0) - (t.used || 0), g = shown(), ter = f.terr[g[t.y][t.x]];
+      var can = ctrl(t), left = (t.g || 0) + clxOf(t) - (t.used || 0), g = shown(), ter = f.terr[g[t.y][t.x]];
       h += '<div class="bd-box"><div><b>' + e(t.n) + '</b> <span class="hint">' + (t.s === "B" ? "을" : "갑") + (t.on ? " · " + e(t.on) : "") + (t.c ? " · " + e((t.c.school || "") + " " + (t.c.lv || "")) : "") + "</span></div>" + '<div class="hint">선 칸: <b>' + e(ter[0]) + "</b> " + e(ter[1]) + "</div>";
       if (can) {
+        if (plot && hasBg(t, "살기감지") && !t.sgj && t.gs) { var sgf = toks().filter(function (k) { return k.s !== t.s && alive(k) && k.gs; }); if (sgf.length) h += '<div class="bd-life">살기감지(전투당 1번): ' + sgf.map(function (k) { return '<button class="btn small" data-sgj="' + e(k.id) + '">' + e(k.n) + "</button>"; }).join("") + "</div>"; }
+        if (!plot && R.phase === "move" && hasBg(t, "백전노장") && !t.bjn) h += '<div class="bd-gong" role="group" aria-label="백전노장">백전노장(전투당 1번, 다시 정하기) ' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="chip" data-g2="' + n + '">' + n + "</button>"; }).join("") + "</div>";
         if (plot) h += '<div class="bd-gong" role="group" aria-label="공력">공력 ' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="chip' + (t.gs && t.g === n ? " on" : "") + '" data-g="' + n + '">' + n + "</button>"; }).join("") + "</div>";
         else h += '<p class="hint">공력 ' + (t.g || "–") + " · 남은 코스트 " + Math.max(0, left) + " · 남은 이동 " + Math.max(0, (t.g || 0) - (t.mv || 0)) + (t.stun ? " · <b>주화입마</b>(이번 라운드 판정 불가)" : "") + "</p>";
         if (ph === "move" && myTurn(t)) h += '<div class="sheet-actions"><button class="btn small' + (MODE && MODE.type === "move" ? " primary" : "") + '" data-b="move">이동</button>' + (t.px != null ? '<button class="btn small" data-b="undo">이동 되돌리기</button>' : "") + '<button class="btn small primary" data-b="done">이동 마침</button></div>';
@@ -501,6 +506,8 @@
     var el = ev.target, b = el.closest("[data-b]"), t = tok(SEL), v;
     if (el.closest("[data-sel]")) { SEL = el.closest("[data-sel]").dataset.sel; MODE = null; draw(true); return; }
     if (el.closest("[data-mobg]") && isGm()) { var gv = +el.closest("[data-mobg]").dataset.mobg, um = {}; toks().forEach(function (k) { if (!k.c && alive(k)) U(k.id, { g: gv, gs: true }, um); }); if (Object.keys(um).length) up(um); else toast("졸개가 없어요"); return; }
+    if (el.closest("[data-sgj]") && t && ctrl(t) && !t.sgj) { var sk2 = tok(el.closest("[data-sgj]").dataset.sgj); if (!sk2) return; toast("살기감지 — " + sk2.n + "의 공력은 " + sk2.g); up(U(t.id, { sgj: true, sgjT: sk2.id })); return; }
+    if (el.closest("[data-g2]") && t && ctrl(t) && !t.bjn) { var g2 = +el.closest("[data-g2]").dataset.g2; say("백전노장 — 공력을 " + g2 + "(으)로 다시 정한다", "sys", U(t.id, { g: g2, bjn: true }), t.n); return; }
     if (el.closest("[data-g]") && t && ctrl(t)) { up(U(t.id, { g: +el.closest("[data-g]").dataset.g, gs: true })); return; }
     if (el.closest("[data-life]") && t && ctrl(t)) { var i = +el.closest("[data-life]").dataset.life, l = t.life.slice(); l[i] = l[i] ? 0 : 1; say(LIFE[i] + (l[i] ? " 회복" : " 상실") + " (♥" + (l.filter(Boolean).length + (t.ex || 0)) + ")", "sys", U(t.id, { life: l }), t.n); return; }
     if (el.closest("[data-sk]") && t && ctrl(t)) { var k = +el.closest("[data-sk]").dataset.sk; MODE = MODE && MODE.type === "skill" && MODE.i === k ? null : { type: "skill", i: k, r: skillsOf(t)[k], tg: [] }; draw(true); return; }
