@@ -1278,7 +1278,7 @@
     var zs = this.ougiReady(f, "zdis")[0]; if (zs) { var near = foes.filter(function (g) { return cheb(g.pos, f.pos) <= 2; }); if (near.length) this.useOugi(f, zs, near[0], queue); }
     var ins = this.ougiReady(f, "instant")[0];
     if (ins && hasMod(ins, "뒤집기")) { f.flip = ins; ins = null; }
-    var dr0 = this.ougiReady(f, "drain")[0]; if (dr0 && this.round <= 3) { var dt = foes.filter(function (g) { return dist(f.pos, g.pos) <= 2 + (hasMod(dr0, "뻗기") ? 1 : 0); }).sort(function (a, b) { return b.pow - a.pow; })[0]; if (dt) this.useOugi(f, dr0, dt, queue); }
+    var dr0 = this.ougiReady(f, "drain")[0]; if (dr0 && this.round <= 3) { var dt = foes.filter(function (g) { return dist(f.pos, g.pos) <= 2 + (hasMod(dr0, "뻗기") ? 1 : 0) - (hasMod(dr0, "단척") ? 1 : 0) && (!hasMod(dr0, "협의") || hpLeft(g) >= hpLeft(f)); }).sort(function (a, b) { return b.pow - a.pow; })[0]; if (dt) this.useOugi(f, dr0, dt, queue); }
     var au0 = this.ougiReady(f, "aura")[0]; if (au0 && this.adjFoes(f).length && (this.adjAllies(f).length || hpLeft(f) <= 4 || this.round >= 2)) this.useOugi(f, au0, f, queue);
     var da0 = this.ougiReady(f, "dash")[0];
     if (da0 && (!this.aiPlan(f, f.pow) || hpLeft(f) <= 3 || (RULES.newOg.dashNeg && this.adjFoes(f).length && this.round >= 2))) { var nf = foes.slice().sort(function (a, b) { return dist(f.pos, a.pos) - dist(f.pos, b.pos); })[0]; if (nf) this.useOugi(f, da0, nf, queue); }
