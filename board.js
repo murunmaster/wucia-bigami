@@ -208,7 +208,7 @@
     if (stagger(k)) o.push("비틀거림");
     var sch = k.c && k.c.school, hl = lifeLeft(k);
     if (sch === "하북팽가" && hl > 0 && hl <= 4) o.push("혈기 " + (hl <= 2 ? "3단" : hl <= 3 ? "2단" : "1단")); /* 생명력 4·3·2 이하 */
-    if (sch === "북원" && (k.mc || 0) >= 3) o.push("질주"); /* 3칸 이상 이동한 라운드 */
+    if (sch === "북원" && (k.mc || 0) >= 2) o.push("질주"); /* 2칸 이상 이동한 라운드(엔진 정의) */
     if (sch === "병마령" && !k.mc) o.push("굳은 몸"); /* 이동하지 않은 라운드 */
     if (sch === "해동" && k.smr === R.round) o.push((k.smx === R.round || k.smp === R.round - 1) ? "신내림" : "신명");
     if (sch === "요왕장" && k.yf && R.round - (k.yr || 0) <= 1) o.push("요화: " + k.yf); /* 다음 라운드 종료까지 */
