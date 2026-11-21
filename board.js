@@ -94,6 +94,45 @@
     u["tk." + t.id + ".ks"] = 0; u["tk." + t.id + ".bs"] = true;
     return " — 신걸아불사공: 취기 3을 모두 쓰고 일어선다(♥1)";
   }
+  /* ── 오의 형태 ── */
+  function ogKindB(o) { var f = String(o.form || ""); return /^연환/.test(f) ? "chain" : /^흡성/.test(f) ? "drain" : /^신법/.test(f) ? "dash" : /^호신강기/.test(f) ? "aura" : ""; }
+  function ogHas(o, n) { return (o.mods || []).some(function (m) { return String(m).indexOf(n) === 0; }); }
+  function clxOf(t) { return t.clx && t.clx.u >= R.round ? t.clx.v : 0; }
+  function chOn(t) { return !!t.ch && t.ch.r === R.round && t.ch.k < t.ch.n; }
+  function sbOn(t) { return !!t.sb && t.sb.r === R.round; }
+  function hsOf(k) { return !!k.hs && R.round <= k.hs.u; }
+  function useOugiB(t, o, b) {
+    var k = ogKindB(o), u = U(t.id, { ogu: (t.ogu || []).concat([o.name]) }), head = "오의 「" + o.name + "」 — " + (o.form || "") + ((o.mods || []).length ? " · " + o.mods.join("·") : "") + (o.skill ? " · 지정특기 《" + o.skill + "》" : "");
+    if (k === "chain") {
+      var n = 3 + (ogHas(o, "잇기") ? 1 : 0) - (ogHas(o, "미력") ? 1 : 0), adv = 1 + (ogHas(o, "빛내기") ? 1 : 0), free = ogHas(o, "연격");
+      U(t.id, { ch: { r: R.round, n: n, k: 0, adv: adv, free: free, nm: "", tg: "" } }, u);
+      say(head + ". 이번 턴에 공격 무공을 코스트 없이 " + n + "번까지 연달아 씁니다. 2번째부터 명중 판정에 유리점 " + adv + "." + (free ? " 연격: 매번 다른 무공·다른 대상으로 바꿀 수 있습니다." : " 같은 무공으로 같은 대상만 칩니다(대상이 쓰러지면 끝).") + (ogHas(o, "탈력") ? " 탈력: 이번 라운드 회피 판정에 불리점 1." : ""), "act", u, t.n);
+      return;
+    }
+    if (k === "drain") {
+      if (!b) { MODE = { type: "og", o: o, rg: 2 + (ogHas(o, "뻗기") ? 1 : 0) - (ogHas(o, "단척") ? 1 : 0) }; INFO = "흡성: 간격 " + MODE.rg + " 안의 적 1명을 누르세요."; draw(true); return; }
+      var d = T().dist(t, b), rg = MODE && MODE.rg || 2; if (d > rg) { toast("간격 " + rg + "인데 " + d + "칸 떨어져 있어요"); return; }
+      var dm = 2 - (ogHas(o, "미력") ? 1 : 0); MODE = null;
+      U(t.id, { clx: { v: 2, u: R.round + 1 } }, u);
+      U(b.id, { clx: { v: -2, u: R.round + 1 }, dq: (b.dq || []).concat([{ ty: "사격전", n: dm, mn: o.name, r: R.round, g: R.cur || 0 }]) }, u);
+      say(head + " → " + b.n + ": 사격전 " + dm + "점(회피 없음). 다음 라운드 종료까지 " + b.n + " 코스트 한계 −2, " + t.n + " +2. 입힌 만큼 " + t.n + "이(가) 생명력을 회복합니다" + (ogHas(o, "삼키기") ? "(삼키기 +1)" : "") + "." + (ogHas(o, "뚫기") ? " 뚫기: 줄여도 1점은 잃는다." : "") + (ogHas(o, "역류") ? " 역류: " + b.n + "은(는) 다음 라운드 종료까지 보조 무공을 쓸 수 없다." : "") + (ogHas(o, "역혈") ? " 역혈: 대상이 마공·괴력난신이면 회복하는 대신 사격전 1점을 입는다." : ""), "act", u, t.n);
+      return;
+    }
+    if (k === "dash") {
+      var mv = 4 + (ogHas(o, "뻗기") ? 1 : 0) - (ogHas(o, "단척") ? 1 : 0), neg = 1 + (ogHas(o, "버티기") ? 1 : 0), dm2 = 1 + (ogHas(o, "베기") ? 1 : 0);
+      U(t.id, { sb: { r: R.round, neg: neg, dm: dm2, used: false, mv: mv } }, u);
+      MODE = { type: "place" }; INFO = "신법: 곧바로 " + mv + "칸까지 옮길 칸을 누르세요(비용 없음).";
+      say(head + ". 곧바로 " + mv + "칸까지 옮긴다. 이번 라운드 종료까지 자신을 노린 명중 판정에 불리점 2, 자신을 노린 공격 " + neg + "번은 빗나간다. 다음 공격 무공은 대상 회피 불리점 1, 대미지 +" + dm2 + "." + (ogHas(o, "탈력") ? " 탈력: 이번 라운드 회피 판정에 불리점 1." : ""), "act", u, t.n);
+      return;
+    }
+    if (k === "aura") {
+      var dr = 1 + (ogHas(o, "두르기") ? 1 : 0) - (ogHas(o, "박벽") ? 1 : 0), rad = ogHas(o, "나누기") ? 2 : 1, until = R.round + 1 + (ogHas(o, "버티기") ? 1 : 0);
+      U(t.id, { hs: { u: until, dr: dr, rad: rad, o3: false, ban: ogHas(o, "반진"), fix: ogHas(o, "고정") } }, u);
+      say(head + ". " + (until === R.round + 1 ? "다음 라운드" : until - R.round + "라운드 뒤") + " 종료까지 자신과 " + (rad === 1 ? "인접한" : "2칸 안의") + " 아군은 받는 접근전·사격전 대미지 " + dr + " 감소, 상태이상에 걸리지 않는다. 자신이 처음 받는 대미지 1번은 3 줄인다." + (ogHas(o, "반진") ? " 반진: 줄일 때마다 공격자에게 집단전 1점." : "") + (ogHas(o, "고정") ? " 고정: 이번·다음 라운드 이동할 수 없다." : "") + " 받을 대미지 상자의 '호신강기' 단추로 줄입니다.", "act", u, t.n);
+      return;
+    }
+    say(head, "act", u, t.n);
+  }
   function ougiOf(t) {
     var c = null;
     if (t.cid && t.o === ME.id) c = pcList().filter(function (x) { return x.id === t.cid; })[0];
@@ -110,11 +149,13 @@
   }
   function dmgOf(r, sp) { var m = /(접근전|사격전)[^0-9집]{0,8}(\d+)\s*점/.exec(r.e || ""); if (m) return { ty: m[1], n: +m[2] + (sp ? 1 : 0) }; if (/집단전/.test(r.e || "")) return { ty: "집단전", n: 1 }; return null; }
   function useSkill(t, r, targets) {
-    var cost = parseInt(r.c, 10) || 0, left = (t.g || 0) - (t.used || 0), pre = !!R.pre && R.phase === "plot";
+    var chain = r.t === "공격" && chOn(t);
+    if (chain && !t.ch.free) { if (t.ch.nm && bare(r.n) !== t.ch.nm) { toast("연환은 같은 무공으로만 이어 씁니다(연격이 있으면 바꿀 수 있어요)"); return; } if (t.ch.tg && targets.length && targets[0].id !== t.ch.tg) { toast("연환은 같은 대상만 칩니다"); return; } }
+    var cost = chain ? 0 : parseInt(r.c, 10) || 0, left = (t.g || 0) + clxOf(t) - (t.used || 0), pre = !!R.pre && R.phase === "plot";
     if (!FREE && !pre) {
       if (R.phase !== "act") { toast(R.phase === "move" ? "아직 이동 단계예요. 무공은 턴에 씁니다" : "공력을 공개한 뒤에 쓸 수 있어요"); return; }
       if (!myTurn(t)) { toast("지금은 공력 " + R.cur + "의 차례예요"); return; }
-      if (r.t === "공격" && t.atk) { toast("공격 무공은 턴에 하나예요. 한 번 더 치는 효과라면 '제한 풀기'를 켜세요"); return; }
+      if (r.t === "공격" && t.atk && !chain) { toast("공격 무공은 턴에 하나예요. 한 번 더 치는 효과라면 '제한 풀기'를 켜세요"); return; }
       if (cost > left) { toast("남은 코스트(" + Math.max(0, left) + ")가 모자라요"); return; }
     }
     if (t.stun) { toast("주화입마라 이번 라운드에는 판정할 수 없어요"); return; }
@@ -143,9 +184,13 @@
       else if (nm === "혹약재연") { var want = window.prompt ? parseInt(window.prompt("취기를 몇으로 할까요? (0~3)", String(ks0)), 10) : ks0; if (!(want >= 0 && want <= 3)) want = ks0; ksN = want; dmsg += " · 취기 " + ks0 + " → " + ksN; }
       else if (nm === "신룡파미") { ksN = Math.min(3, ks0 + 1); dmsg += " · 취기 " + ksN + (ks0 >= 3 ? " (취기 3이었으니 대미지 +1)" : ""); }
     }
-    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, (cover ? -1 : 0) + (stg ? -1 : 0)) : { ok: true, txt: "" };
+    var chAdv = chain && t.ch.k >= 1 ? t.ch.adv : 0, sbT = r.t === "공격" && targets.length === 1 && sbOn(targets[0]) ? -2 : 0, sbMe = r.t === "공격" && sbOn(t) && !t.sb.used;
+    var j = sk || t.tv ? judge(TN(t, sk), pre ? 0 : stunLine(t), !t.c, 0, (cover ? -1 : 0) + (stg ? -1 : 0) + chAdv + sbT) : { ok: true, txt: "" };
     var dm = r.t === "공격" ? dmgOf(r, j.sp) : null, u = U(t.id, { used: (t.used || 0) + (FREE || pre ? 0 : cost) }), pd = (R.pd || []).slice();
     if (dm && dmx && dm.ty !== "집단전") dm = { ty: dm.ty, n: dm.n + dmx };
+    if (dm && sbMe && dm.ty !== "집단전") { dm = { ty: dm.ty, n: dm.n + t.sb.dm }; u["tk." + t.id + ".sb.used"] = true; dmsg += " · 신법: 대상 회피 불리점 1, 대미지 +" + t.sb.dm; }
+    if (chain) { u["tk." + t.id + ".ch.k"] = t.ch.k + 1; if (!t.ch.nm) u["tk." + t.id + ".ch.nm"] = bare(r.n); if (!t.ch.tg && targets.length) u["tk." + t.id + ".ch.tg"] = targets[0].id; dmsg += " · 연환 " + (t.ch.k + 1) + "/" + t.ch.n + (chAdv ? "(유리점 " + chAdv + ")" : ""); }
+    if (sbT) dmsg += " · " + targets[0].n + " 신법: 명중 불리점 2";
     if (ksN !== ks0) u["tk." + t.id + ".ks"] = ksN;
     if (nm === "취생몽사" && drunk(t)) u["tk." + t.id + ".dream"] = R.round;
     if (nm === "취팔선보" && drunk(t)) u["tk." + t.id + ".jp"] = R.round;
@@ -161,7 +206,7 @@
     if (j.ok === false && !j.none && wet(t) && t.c) { u["tk." + t.id + ".dq"] = (t.dq || []).concat([{ ty: "접근전", n: 1, mn: "수중", r: R.round, g: R.cur }]); msg += " — 물에 휩쓸려 접근전 1점"; }
     if (j.ok !== false && targets.length && (r.t === "공격" || /회피/.test(r.e || ""))) {
       var sim = toks().filter(function (k) { return alive(k) && k.g === t.g; }).length > 1;
-      targets.forEach(function (b) { pd.push({ i: Math.random().toString(36).slice(2, 8), a: t.id, b: b.id, sk: sk, mn: bare(r.n), e: r.e || "", dm: dm, g: R.cur || 0, r: R.round, sim: sim }); });
+      targets.forEach(function (b) { pd.push({ i: Math.random().toString(36).slice(2, 8), a: t.id, b: b.id, sk: sk, mn: bare(r.n), e: r.e || "", dm: dm, g: R.cur || 0, r: R.round, sim: sim, ea: sbMe ? -1 : 0 }); });
       u.pd = pd; if (j.sp && dm && dm.ty !== "집단전") msg += " (스페셜: 대미지 +1)";
     } else if (j.ok !== false && r.e) msg += " — " + r.e;
     if (stg) msg += " (비틀거림: 불리점 1)";
@@ -213,6 +258,10 @@
     if (sch === "해동" && k.smr === R.round) o.push((k.smx === R.round || k.smp === R.round - 1) ? "신내림" : "신명");
     if (sch === "요왕장" && k.yf && R.round - (k.yr || 0) <= 1) o.push("요화: " + k.yf); /* 다음 라운드 종료까지 */
     if (k.pm) o.push("표식 " + k.pm);
+    if (chOn(k)) o.push("연환 " + k.ch.k + "/" + k.ch.n + (k.ch.nm ? " " + k.ch.nm : ""));
+    if (sbOn(k)) o.push("신법(빗나감 " + k.sb.neg + (k.sb.used ? "" : ", 다음 공격 +" + k.sb.dm) + ")");
+    if (hsOf(k)) o.push("호신강기 −" + k.hs.dr + (k.hs.o3 ? "" : ", 첫 대미지 −3"));
+    if (clxOf(k)) o.push("코스트 한계 " + (clxOf(k) > 0 ? "+" : "") + clxOf(k));
     if (k.pair) { var pk = tok(k.pair); if (pk) o.push("짝 " + pk.n + (pk.out ? "(쓰러짐)" : "")); } /* 종남파 */
     if (k.decl) { var dk = tok(k.decl); if (dk) o.push("예고 " + dk.n); } /* 의살문 */
     return o.length ? " · " + o.join(" · ") : "";
@@ -239,7 +288,7 @@
       var a = tok(p.a), b = tok(p.b); if (!b) return;
       var tv = TN(b, p.sk), can = ctrl(b);
       h += '<div class="bd-box bd-pend"><b>회피</b> ' + e((a ? a.n : "?") + " → " + b.n) + " 【" + e(p.mn) + "】" + (p.dm ? " " + e(p.dm.ty + (p.dm.ty === "집단전" ? "" : " " + p.dm.n + "점")) : "") + '<span class="hint"> ' + e(p.e) + "</span>" +
-        (can ? '<div class="sheet-actions">' + (b.stun ? '<span class="hint">주화입마라 회피할 수 없어요.</span>' : '<button class="btn small primary" data-b="dodge" data-i="' + p.i + '">회피 굴리기' + (p.sk ? " 《" + e(p.sk) + "》" + (tv && tv < 99 ? " 목표 " + tv : tv >= 99 ? " 판정 불가" : "") : "") + (R.ter === "고소" ? " (고소 −2)" : "") + '</button><button class="btn small" data-b="flee" data-i="' + p.i + '">도주(《신법》)</button>') + '<button class="btn small" data-b="nododge" data-i="' + p.i + '">그냥 맞기</button>' + (isGm() ? '<button class="btn small" data-b="pdx" data-i="' + p.i + '">없던 일로</button>' : "") + "</div>" : '<span class="hint"> 상대가 회피를 굴립니다.</span>') + "</div>";
+        (can ? '<div class="sheet-actions">' + (b.stun ? '<span class="hint">주화입마라 회피할 수 없어요.</span>' : '<button class="btn small primary" data-b="dodge" data-i="' + p.i + '">회피 굴리기' + (p.sk ? " 《" + e(p.sk) + "》" + (tv && tv < 99 ? " 목표 " + tv : tv >= 99 ? " 판정 불가" : "") : "") + (R.ter === "고소" ? " (고소 −2)" : "") + '</button><button class="btn small" data-b="flee" data-i="' + p.i + '">도주(《신법》)</button>' + (sbOn(b) && b.sb.neg > 0 ? '<button class="btn small" data-b="ogneg" data-i="' + p.i + '">신법: 빗나가게(' + b.sb.neg + ')</button>' : "")) + '<button class="btn small" data-b="nododge" data-i="' + p.i + '">그냥 맞기</button>' + (isGm() ? '<button class="btn small" data-b="pdx" data-i="' + p.i + '">없던 일로</button>' : "") + "</div>" : '<span class="hint"> 상대가 회피를 굴립니다.</span>') + "</div>";
     });
     toks().forEach(function (t) {
       if (!ctrl(t)) return;
@@ -251,6 +300,8 @@
         else if (!t.life) h += '<div class="sheet-actions"><button class="btn small primary" data-b="dq-hp">받기(생명력 −' + it.n + ")</button>";
         else if (it.ty === "접근전") h += '<div class="sheet-actions"><button class="btn small primary" data-b="dq-roll">분야 굴리기(1D6' + (it.n > 1 ? " × " + it.n : "") + ")</button>";
         else h += '<p class="hint">잃을 분야를 ' + it.n + '개 고르세요.</p><div class="bd-life">' + LIFE.map(function (n, i) { return t.life[i] ? '<button class="chip on" data-b="dq-pick" data-i="' + i + '">' + n + "</button>" : ""; }).join("") + (t.ex ? '<button class="chip on" data-b="dq-pick" data-i="-1">추가 생명력</button>' : "") + '</div><div class="sheet-actions">';
+        var hsK = toks().filter(function (k) { return !k.out && k.s === t.s && hsOf(k) && T().dist(k, t) <= (k.hs.rad === 2 ? 2 : 1.5); })[0];
+        if (dqReady(it) && hsK && it.ty !== "집단전" && !it.hs) h += '<button class="btn small" data-b="dq-hs">호신강기(' + e(hsK.n) + ') 줄이기</button>';
         if (dqReady(it)) h += '<button class="btn small" data-b="dq-less">1점 줄이기(경감)</button><button class="btn small" data-b="dq-x">받지 않음</button></div>';
         h += "</div>";
       }
@@ -367,6 +418,7 @@
   function onAlert(ev) {
     var b = ev.target.closest("[data-b]"); if (!b || !R) return;
     var act = b.dataset.b, pd = (R.pd || []), p = pd.filter(function (x) { return x.i === b.dataset.i; })[0];
+    if (p && act === "ogneg") { var tn = tok(p.b); if (!tn || !ctrl(tn) || !sbOn(tn) || tn.sb.neg < 1) return; var un = U(tn.id, { "sb.neg": tn.sb.neg - 1 }); un.pd = pd.filter(function (x) { return x !== p; }); say("신법 — 【" + p.mn + "】이(가) 빗나간다", "ok", un, tn.n); return; }
     if (p && /^(dodge|flee|nododge|pdx)$/.test(act)) {
       var tb = tok(p.b), rest = pd.filter(function (x) { return x !== p; }); if (!tb) { up({ pd: rest }); return; }
       if (act === "pdx") { if (isGm()) say("【" + p.mn + "】 없던 일로", "sys", { pd: rest }, "판"); return; }
@@ -375,7 +427,7 @@
       var line = R.phase === "plot" ? 0 : stunLine(tb);
       if (act === "nododge") { hit("회피하지 않음"); return; }
       if (act === "flee") { var jf = judge(TN(tb, "신법"), line, !tb.c); if (jf.ok) { var u2 = U(tb.id, { out: "도주" }); u2.pd = rest.filter(function (x) { return x.b !== tb.id; }); say("도주 《신법》 " + jf.txt + " — 전투에서 벗어난다(전과 없음)", "ok", u2, tb.n); } else hit("도주 《신법》 " + jf.txt, jf.stun); return; }
-      var j = judge(TN(tb, p.sk), line, !tb.c, R.ter === "고소" ? -2 : 0), head = "회피" + (p.sk ? " 《" + p.sk + "》 " : " ") + j.txt;
+      var j = judge(TN(tb, p.sk), line, !tb.c, R.ter === "고소" ? -2 : 0, p.ea || 0), head = "회피" + (p.sk ? " 《" + p.sk + "》 " : " ") + j.txt + (p.ea ? " (신법: 불리점 1)" : "");
       if (j.ok) { var uo = { pd: rest }; if (drunk(tb) && tb.jp === R.round) { uo["tk." + tb.id + ".ks"] = Math.min(3, (tb.ks || 0) + 1); uo["tk." + tb.id + ".jp"] = 0; head += " · 취팔선보: 취기 " + Math.min(3, (tb.ks || 0) + 1); } say(head, "ok", uo, tb.n); return; }
       if (j.ok === null) { say(head + " — 맞았다면 '그냥 맞기'를 누르세요", "", {}, tb.n); return; }
       hit(head, j.stun); return;
@@ -386,6 +438,12 @@
     if (act === "dth") { commit(t, { dth: true, dn: false }, "사망 공격을 선언한다(공격을 마치면 사망. 보조 무공 코스트 0은 '제한 풀기'로)", "bad"); return; }
     if (act === "black") { if (!isGm()) return; var r6 = d6(); commit(t, { out: r6 === 1 ? "사망" : "탈락" }, "흑관문 1D6 → " + r6 + (r6 === 1 ? " — 사망" : " — 살아남아 탈락(전투가 끝나면 무작위 생명력 1 회복)"), "bad"); return; }
     if (!it || !dqReady(it)) return;
+    if (act === "dq-hs") {
+      var hk = toks().filter(function (k) { return !k.out && k.s === t.s && hsOf(k) && T().dist(k, t) <= (k.hs.rad === 2 ? 2 : 1.5); })[0]; if (!hk || it.hs) return;
+      var cut = hk.hs.dr + (hk.id === t.id && !hk.hs.o3 ? 3 : 0), uh2 = {}; if (hk.id === t.id && !hk.hs.o3) U(hk.id, { "hs.o3": true }, uh2);
+      var left2 = Math.max(0, it.n - cut); if (left2) dq[0] = Object.assign({}, it, { n: left2, hs: true }); else dq.shift(); U(t.id, { dq: dq }, uh2);
+      say("호신강기 — 대미지 " + Math.min(it.n, cut) + "점을 줄인다" + (hk.hs.ban ? " (반진: 공격자에게 집단전 1점)" : ""), "sys", uh2, t.n); return;
+    }
     if (act === "dq-x") { dq.shift(); say("대미지를 받지 않음(" + it.ty + ")", "sys", U(t.id, { dq: dq }), t.n); }
     else if (act === "dq-less") { if (it.n > 1) dq[0] = Object.assign({}, it, { n: it.n - 1 }); else dq.shift(); say("대미지 1점 경감", "sys", U(t.id, { dq: dq }), t.n); }
     else if (act === "dq-st") { var s6 = d6(), st = STS[s6 - 1], sts = (t.sts || []).slice(); if (sts.indexOf(st) < 0) sts.push(st); dq.shift(); say("집단전 — 상태이상표 " + s6 + ": " + st + " (《" + CURE[st] + "》 판정으로 해제)", "bad", U(t.id, { dq: dq, sts: sts }), t.n); }
@@ -423,6 +481,7 @@
       u.rows = setCell(x, y, ch); if (MODE.temp) u.tmp = (R.tmp || []).concat([{ x: x, y: y, was: gr[y][x], until: R.round + 1 }]);
       up(u); return;
     }
+    if (t && ctrl(t) && MODE && MODE.type === "og" && here && here.id !== t.id) { useOugiB(t, MODE.o, here); return; }
     if (t && ctrl(t) && MODE && MODE.type === "skill" && here && here.id !== t.id) {
       var why = whyNot(t, MODE.r, here); if (why) { toast(why); return; }
       if (MULTI) { MODE.tg = MODE.tg || []; var ix = MODE.tg.indexOf(here.id); if (ix >= 0) MODE.tg.splice(ix, 1); else MODE.tg.push(here.id); draw(true); return; }
@@ -445,7 +504,7 @@
     if (el.closest("[data-g]") && t && ctrl(t)) { up(U(t.id, { g: +el.closest("[data-g]").dataset.g, gs: true })); return; }
     if (el.closest("[data-life]") && t && ctrl(t)) { var i = +el.closest("[data-life]").dataset.life, l = t.life.slice(); l[i] = l[i] ? 0 : 1; say(LIFE[i] + (l[i] ? " 회복" : " 상실") + " (♥" + (l.filter(Boolean).length + (t.ex || 0)) + ")", "sys", U(t.id, { life: l }), t.n); return; }
     if (el.closest("[data-sk]") && t && ctrl(t)) { var k = +el.closest("[data-sk]").dataset.sk; MODE = MODE && MODE.type === "skill" && MODE.i === k ? null : { type: "skill", i: k, r: skillsOf(t)[k], tg: [] }; draw(true); return; }
-    if (el.closest("[data-og]") && t && ctrl(t)) { var o = ougiOf(t)[+el.closest("[data-og]").dataset.og]; if (!o) return; say("오의 「" + o.name + "」 — " + (o.form || "") + ((o.mods || []).length ? " · " + o.mods.join("·") : "") + (o.skill ? " · 지정특기 《" + o.skill + "》" : ""), "act", U(t.id, { ogu: (t.ogu || []).concat([o.name]) }), t.n); return; }
+    if (el.closest("[data-og]") && t && ctrl(t)) { var o = ougiOf(t)[+el.closest("[data-og]").dataset.og]; if (!o) return; if ((t.ogu || []).indexOf(o.name) >= 0 && !FREE) { toast("이번 전투에 이미 쓴 오의예요(재사용은 '제한 풀기')"); return; } useOugiB(t, o, null); return; }
     if (!b) return; var act = b.dataset.b;
     if (act === "join") { if (ME.id) up({ mem: FV() ? FV().arrayUnion(ME.id) : (R.mem || []).concat([ME.id]) }); return; }
     if (!member()) return;
