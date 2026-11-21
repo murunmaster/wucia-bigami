@@ -123,7 +123,7 @@
       col.doc(a.id).set(d).catch(function () { }); n0++;
     });
     (A.memo || []).forEach(function (m) {
-      GM.npc.forEach(function (n) { if (n.n === m.n && String(n.memo || "").indexOf(m.key) < 0) { col.doc(n.id).update({ memo: ((n.memo || "") + " " + m.add).trim() }).catch(function () { }); } });
+      GM.npc.forEach(function (n) { if (n.n === m.n && (!m.id || n.id === m.id) && String(n.memo || "").indexOf(m.key) < 0) { col.doc(n.id).update({ memo: ((n.memo || "") + " " + m.add).trim() }).catch(function () { }); } });
     });
     try { localStorage.setItem(mk, JSON.stringify(done)); } catch (x) { }
     if (n0 && window.toast) toast("강호사 NPC " + n0 + "명을 서고에 넣었어요");
