@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl rheal nextlife ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -147,7 +147,7 @@
     /* 상시 수치 */
     f.passive.forEach(function (x) { if (x.conds.length) return; x.effs.forEach(function (e) { if (e.key === "hp" && !e.who) f.extra += e.v; }); });
     f.flags = {};
-    f.passive.forEach(function (x) { if (x.conds.length || x.lim) return; x.effs.forEach(function (e) { if (!e.sub && !e.v) return; if (["immovable", "nostun", "nohigh", "nowater", "nocold", "noterr", "rr", "endure", "nodeath", "lastround", "stunatk", "stunev", "lostok", "seehidden", "lurk", "nomvdebuff", "nopull", "stpick", "drunk", "ignoreg", "hdmulti", "bank", "debtback", "powmin", "powmax", "powmono", "dashr1", "noatkr1", "startst", "noselfst", "dmcap", "first", "seehid", "unarm", "killpay", "lostpen", "quick", "iaido", "openpow", "lastpow", "peek", "bloodadv", "regen", "barefoot", "keepdo", "antidote", "nopose", "redecl"].indexOf(e.key) >= 0) f.flags[e.key] = e.arg || true; if (e.key === "immune") f.flags["im_" + e.arg] = true; }); });
+    f.passive.forEach(function (x) { if (x.conds.length || x.lim) return; x.effs.forEach(function (e) { if (!e.sub && !e.v) return; if (["immovable", "nostun", "nohigh", "nowater", "nocold", "noterr", "rr", "endure", "nodeath", "lastround", "stunatk", "stunev", "lostok", "seehidden", "lurk", "nomvdebuff", "nopull", "stpick", "drunk", "ignoreg", "hdmulti", "bank", "debtback", "powmin", "powmax", "powmono", "dashr1", "noatkr1", "startst", "noselfst", "dmcap", "first", "seehid", "unarm", "killpay", "lostpen", "quick", "iaido", "openpow", "lastpow", "peek", "bloodadv", "regen", "barefoot", "keepdo", "antidote", "nopose", "redecl", "nextlife"].indexOf(e.key) >= 0) f.flags[e.key] = e.arg || true; if (e.key === "immune") f.flags["im_" + e.arg] = true; }); });
     if (f.flags.drunk) f.drunk = true;
     f.unparsed = f.mgs.filter(function (m) { var g = fxGaps(m.r.n); return g.unk || g.none; }).map(function (m) { return m.r.n; });
     f.ougi = (window.WX_OG ? WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")).list : (c.ougi || [])).filter(function (o) { return o && o.form; }).map(function (o, i) { return { i: i, name: o.name || "무명 오의", form: o.form, skill: o.skill, mods: o.mods || [] }; });
@@ -595,6 +595,7 @@
     if (f.flags.lastround && !f.used.lastround) { f.used.lastround = 1; f.dying = true; this.say(f.name + " — 생명력 0이지만 라운드가 끝날 때까지 싸운다", "og"); return; }
     if (this.f.some(function (g) { return alive(g) && g !== f && g.side === f.side && g.st && g.zoneSave; })) { }
     f.out = true; f.hidden = 0;
+    if (f.flags.nextlife) { var nl = this.friends(f).filter(function (g) { return g !== f && alive(g) && f.pos && g.pos && cheb(g.pos, f.pos) <= 1; }).sort(function (x, y) { return hpLeft(x) - hpLeft(y); })[0]; if (nl) { this.say(f.name + " — 내생공: " + nl.name + "에게 다음 생을 넘긴다", "og"); this.heal(nl, 1); nl.buffs.push({ key: "ha", v: 1, left: 2, uses: 1 }); } }
     if (f.flags.nodeath) { this.say(f.name + " 탈락 (죽지 않는다)", "out"); return; }
     if (f.pc && !RULES.killDeclare) { this.say(f.name + " 탈락 — 숨통은 끊지 않았다 (전투 뒤 생명력 1 회복)", "out"); return; }
     if (f.pc) {
@@ -1517,7 +1518,7 @@
       if (f.grade === "졸개" && f.side === 1) mobPow = f.pow;
       f._powRound = this.round; if (f.flags.openpow) pubPow[f.id] = f.pow;
       if (f.powDown) f.pow = Math.max(1, f.pow - f.powDown);
-      f.passive.forEach(function (cl) { if (!self.clOk(f, cl, null, null)) return; cl.effs.forEach(function (e) { if (e.key === "powup") { f.pow = Math.min(6, f.pow + (e.v || 1)); self.limUse(f, cl); self.say(f.name + " — 공력 +" + (e.v || 1), "dim"); } }); });
+      f.passive.forEach(function (cl) { if (!self.clOk(f, cl, null, null)) return; cl.effs.forEach(function (e) { if (e.key === "powup") { f.pow = Math.min(6, f.pow + (e.v || 1)); self.limUse(f, cl); self.say(f.name + " — 공력 +" + (e.v || 1), "dim"); } if (e.key === "rheal") self.heal(f, e.v || 1); }); });
     }
     this.say("공력 — " + live.map(function (f) { return f.name + " " + f.pow; }).join(" · "), "dim");
     live.forEach(function (f) { if (!f.ctrl) self.aiRound(f); });
