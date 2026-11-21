@@ -105,3 +105,24 @@
   function rerender() { if (last) render(last[0], last[1]); }
   window.renderLore = function (full, view) { render(full, view || document.getElementById("view")); };
 })();
+/* 29차 실전문파 편입 */
+(function () {
+  var MV = {
+    "군자숙녀검(君子淑女劍)": "종남파",
+    "탄쟁(彈箏)": "공동파",
+    "백랑권(白浪拳)": "창랑회",
+    "역우(逆雨)": "창랑회",
+    "법륜(法輪)": "하생회",
+    "혼원봉(混元棒)": "무적여가"
+  };
+  var prev = window.WX_PATCH_DATA;
+  window.WX_PATCH_DATA = function (d) {
+    if (prev) d = prev(d);
+    if (!d || !d.muk) return d;
+    d.muk.forEach(function (r) {
+      if (!MV[r.n] || r.g === "실전문파") return;
+      r.g = "실전문파"; r.s = MV[r.n]; r.e = String(r.e || "").replace(/^비급\.\s*/, "");
+    });
+    return d;
+  };
+})();
