@@ -213,6 +213,8 @@
     if (sch === "해동" && k.smr === R.round) o.push((k.smx === R.round || k.smp === R.round - 1) ? "신내림" : "신명");
     if (sch === "요왕장" && k.yf && R.round - (k.yr || 0) <= 1) o.push("요화: " + k.yf); /* 다음 라운드 종료까지 */
     if (k.pm) o.push("표식 " + k.pm);
+    if (k.pair) { var pk = tok(k.pair); if (pk) o.push("짝 " + pk.n + (pk.out ? "(쓰러짐)" : "")); } /* 종남파 */
+    if (k.decl) { var dk = tok(k.decl); if (dk) o.push("예고 " + dk.n); } /* 의살문 */
     return o.length ? " · " + o.join(" · ") : "";
   }
   function opt(list, cur, labels) { return list.map(function (v, i) { return '<option value="' + e(v) + '"' + (String(v) === String(cur) ? " selected" : "") + ">" + e(labels ? labels[i] : v) + "</option>"; }).join(""); }
@@ -293,6 +295,9 @@
         h += '<div class="bd-life">' + (t.sts || []).map(function (s) { return '<span class="chip on">' + e(s) + ' <button class="bd-x" data-b="cure" data-s="' + e(s) + '" title="해제 판정">《' + e(CURE[s] || "") + '》</button><button class="bd-x" data-b="stx" data-s="' + e(s) + '" aria-label="' + e(s) + ' 떼기">×</button></span>'; }).join("") + '<select data-f="addst" aria-label="상태이상 붙이기"><option value="">+ 상태이상</option>' + opt(STS, "") + '</select><button class="btn small" data-b="stroll">상태이상표</button></div>';
         h += '<div class="bd-life">마기 <button class="btn small" data-b="mk-">−</button>' + (t.mk || 0) + '<button class="btn small" data-b="mk+">+</button> ' + ksName(t) + ' <button class="btn small" data-b="ks-">−</button>' + (t.ks || 0) + '<button class="btn small" data-b="ks+">+</button> 표식 <button class="btn small" data-b="pm-">−</button>' + (t.pm || 0) + '<button class="btn small" data-b="pm+">+</button></div>';
         h += '<div class="bd-life"><input data-f="st" value="' + e(t.st || "") + '" placeholder="메모" aria-label="메모"></div>';
+        var tsc = t.c && t.c.school, others = toks().filter(function (k) { return k.id !== t.id && !k.out; });
+        if (tsc === "종남파") h += '<div class="bd-life">짝 <select data-f="pair" aria-label="짝">' + opt([""].concat(others.filter(function (k) { return k.s === t.s; }).map(function (k) { return k.id; })), t.pair || "", ["정하지 않음"].concat(others.filter(function (k) { return k.s === t.s; }).map(function (k) { return k.n; }))) + "</select></div>";
+        if (tsc === "의살문") h += '<div class="bd-life">예고한 표적 <select data-f="decl" aria-label="예고한 표적">' + opt([""].concat(others.filter(function (k) { return k.s !== t.s; }).map(function (k) { return k.id; })), t.decl || "", ["정하지 않음"].concat(others.filter(function (k) { return k.s !== t.s; }).map(function (k) { return k.n; }))) + "</select></div>";
         h += '<div class="gm-bar"><select data-f="adv" aria-label="유리점·불리점">' + opt([2, 1, 0, -1, -2], ADV, ["유리점 2", "유리점 1", "보통", "불리점 1", "불리점 2"]) + '</select><select data-f="mod" aria-label="수정치">' + opt([3, 2, 1, 0, -1, -2, -3], MOD, ["+3", "+2", "+1", "수정 없음", "−1", "−2", "−3"]) + '</select><label class="hint"><input type="checkbox" data-f="multi"' + (MULTI ? " checked" : "") + '> 여럿 고르기</label><label class="hint"><input type="checkbox" data-f="free"' + (FREE ? " checked" : "") + "> 제한 풀기(밀기·당기기·추가 행동)</label></div>" +
           '<p class="hint">유리점·수정치는 다음 판정 한 번에만 듭니다. 엄폐·고소·악지·고지·분지는 저절로 계산돼요.</p>';
         var sks = skillsOf(t);
@@ -518,6 +523,7 @@
     else if (f === "free") { FREE = el.checked; re = true; } else if (f === "multi") { MULTI = el.checked; if (MODE && MODE.tg) MODE.tg = []; re = true; } else if (f === "secret") SECRET = el.checked;
     else if (f === "brush" && MODE) MODE.brush = el.value; else if (f === "temp" && MODE) MODE.temp = el.checked;
     else if (f === "st" && t && ctrl(t)) up(U(t.id, { st: el.value.slice(0, 40) }));
+    else if ((f === "pair" || f === "decl") && t && ctrl(t)) { var o3 = {}, nk = tok(el.value); o3[f] = el.value; say((f === "pair" ? "짝: " : "예고한 표적: ") + (nk ? nk.n : "없음"), "sys", U(t.id, o3), t.n); }
     else if (f === "addst" && t && ctrl(t) && el.value) { var sts = (t.sts || []).slice(); if (sts.indexOf(el.value) < 0) sts.push(el.value); say("상태이상 " + el.value, "bad", U(t.id, { sts: sts }), t.n); }
     else if (isGm() && f === "ter") say("전장: " + el.value, "sys", { ter: el.value }, "판");
     else if (isGm() && f === "pre") up({ pre: el.checked });
