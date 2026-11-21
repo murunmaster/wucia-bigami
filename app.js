@@ -1798,7 +1798,7 @@ function rollChar(opt) {
   var c = blankChar(); c.lv = lv; c.group = group; c.school = school;
   var allSk = DATA.skills || [], fieldOf = {}; allSk.forEach(function (s) { fieldOf[s.n] = s.f; });
   /* 이 문파·범용 무공 가운데 이 경지에서 익힐 수 있는 것 */
-  var pool = DATA.muk.filter(function (r) { return r.n !== "접근전 공격" && lvIdx(r.lv) <= lvIdx(lv) && (isGeneral(r) || schoolMatch(r, c)); });
+  var pool = DATA.muk.filter(function (r) { return r.n !== "접근전 공격" && (opt.lost || !/^실전\(/.test(r.e || "")) && lvIdx(r.lv) <= lvIdx(lv) && (isGeneral(r) || schoolMatch(r, c)); });
   var freq = {}; pool.forEach(function (r) { if (r.sk && r.sk !== "—" && fieldOf[r.sk]) freq[r.sk] = (freq[r.sk] || 0) + (schoolMatch(r, c) ? 3 : 1); });
   /* 1. 특기: 조건 특기 하나 → 주요 분야 2개 이상 → 나머지는 문파 무공이 쓰는 특기를 더 자주 */
   var cond = G.schools[school];
