@@ -76,7 +76,10 @@ window.WX_FB = true;
       var f = inp.files && inp.files[0]; if (!f) return;
       f.text().then(function (t) {
         var j = JSON.parse(t), docs = (j && j.docs) || [];
-        if (!confirm(docs.length + "개 문서를 덮어씁니다. 진행할까요?")) return;
+        /* GM 서고(NPC·기보·던전)만 골라 가져올 수 있다. 플레이어 자료(PC·방명록·공지)는 그대로 둔다 */
+        var gm = docs.filter(function (d) { return /^(gmn-|gmg-|gmnpc|gmgibo)/.test(d.path || ""); });
+        if (gm.length && confirm("GM 서고(NPC·기보) 문서 " + gm.length + "개만 덮어쓸까요?\n(PC·방명록·공지는 건드리지 않아요)")) docs = gm;
+        else if (!confirm("전체 " + docs.length + "개 문서를 덮어씁니다. 진행할까요?")) return;
         var fs = firebase.firestore(), i = 0, bad = 0;
         lab.firstChild.textContent = "가져오는 중 0/" + docs.length;
         function next() {
