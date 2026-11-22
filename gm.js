@@ -145,7 +145,7 @@
     });
     /* 글 고치기: 필드에 옛 문구가 남아 있으면 새 문구로 바꾼다 */
     (A.fix || []).forEach(function (m) {
-      GM.gibo.forEach(function (g) { var v = String(g[m.f] || ""); if (g.n === m.n && v.indexOf(m.from) >= 0) { var u = {}; u[m.f] = v.split(m.from).join(m.to); col.doc(g.id).update(u).catch(function () { }); } });
+      GM.gibo.forEach(function (g) { var v = String(g[m.f] || ""); if (g.n === m.n && v.indexOf(m.from) >= 0 && v.indexOf(m.to) < 0) { var u = {}; u[m.f] = v.split(m.from).join(m.to); col.doc(g.id).update(u).catch(function () { }); } });
     });
     try { localStorage.setItem(mk, JSON.stringify(done)); } catch (x) { }
     if (n0 && window.toast) toast("기보 " + n0 + "개를 서고에 넣었어요");
