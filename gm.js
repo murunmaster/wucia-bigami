@@ -220,7 +220,7 @@
   function drawTabs() {
     var tabs = q("#gm-tabs"); if (!tabs) return;
     var dgCount = maps().reduce(function (n, m) { return n + m.zones.filter(function (z) { return z.dg; }).length; }, 0);
-    tabs.innerHTML = [["gibo", "기보", GM.gibo.length], ["npc", "NPC", GM.npc.length], ["dungeon", "던전", dgCount]].concat(window.WX_ENEMY ? [["enemy", "에너미", window.WX_ENEMY.count(GM)]] : []).map(function (t) {
+    tabs.innerHTML = [["gibo", "기보", GM.gibo.filter(function (r) { return !isPrize(r); }).length], ["prize", "프라이즈", GM.gibo.filter(isPrize).length], ["npc", "NPC", GM.npc.length], ["dungeon", "던전", dgCount]].concat(window.WX_ENEMY ? [["enemy", "에너미", window.WX_ENEMY.count(GM)]] : []).map(function (t) {
       return '<a href="#gm" data-tab="' + t[0] + '"' + (GM.tab === t[0] ? ' aria-current="page"' : "") + ">" + t[1] + " <small>" + t[2] + "</small></a>";
     }).join("");
   }
@@ -230,6 +230,7 @@
     var body = q("#gm-body");
     var msg = GM.err ? '<p class="hint gm-err">' + e(GM.err) + "</p>" : !GM.giboReady && !GM.gibo.length ? '<p class="hint">불러오는 중…</p>' : "";
     if (GM.tab === "gibo") body.innerHTML = msg + giboFilters() + '<div id="gm-list"></div>';
+    else if (GM.tab === "prize") body.innerHTML = msg + prizeFilters() + '<div id="gm-list"></div>';
     else if (GM.tab === "npc") body.innerHTML = msg + '<div class="gm-bar"><div class="field"><label for="gm-nq">찾기</label><input id="gm-nq" type="search" data-gf="nq" value="' + e(GM.f.nq || "") + '" placeholder="이름·소속·역할"></div>' + npcFilters() + '<button type="button" class="btn small" data-act="npc-add">NPC 추가</button></div><div id="gm-list"></div>';
     else if (GM.tab === "enemy") body.innerHTML = msg + '<div id="gm-list"></div>';
     else body.innerHTML = msg + dgFilters() + '<p class="hint">던전은 구역도에 지정된 곳이에요. 보상은 기보 탭에서 그 던전 구역에 기보를 두면 여기 함께 나와요.' + (window.WX_DG ? " '던전 짜기'를 누르면 층과 구역을 짜고 고칩니다. 고친 뒤에는 꼭 '저장'을 누르세요." : "") + '</p><div id="gm-list"></div>';
@@ -241,13 +242,42 @@
     return '<div class="field"><label for="' + id + '">' + label + '</label><select id="' + id + '" data-gf="' + gf + '"><option value="">전체</option>' +
       list.map(function (v) { return "<option" + (v === cur ? " selected" : "") + ">" + e(v) + "</option>"; }).join("") + "</select></div>";
   }
+  function isPrize(r) { return r.cat === "프라이즈" || r.cat === "단서"; }
   function giboFilters() {
+    var G = GM.gibo.filter(function (r) { return !isPrize(r); });
     return '<div class="gm-bar"><div class="field"><label for="gm-q">찾기</label><input id="gm-q" type="search" data-gf="q" value="' + e(GM.f.q || "") + '" placeholder="이름·효과·자리"></div>' +
-      sel("gm-cat", "cat", "분류", uniq(GM.gibo.map(function (r) { return r.cat; })), GM.f.cat) +
-      sel("gm-src", "src", "획득처", uniq(GM.gibo.map(function (r) { return r.src; })), GM.f.src) +
+      sel("gm-cat", "cat", "분류", uniq(G.map(function (r) { return r.cat; })), GM.f.cat) +
+      sel("gm-src", "src", "획득처", uniq(G.map(function (r) { return r.src; })), GM.f.src) +
       sel("gm-st", "st", "상태", STATUS, GM.f.st) +
-      sel("gm-gp", "gp", "자리", uniq(giboSorted(GM.gibo).map(function (x) { return x.p.name; })), GM.f.gp) + "</div>" +
+      sel("gm-gp", "gp", "자리", uniq(giboSorted(G).map(function (x) { return x.p.name; })), GM.f.gp) + "</div>";
+  }
+  /* ── 프라이즈 탭 (11-23): 프라이즈·단서를 이야기별로 ── */
+  function storyOf(r) { return r.story || "이야기 미정"; }
+  function prizeFilters() {
+    var P = GM.gibo.filter(isPrize);
+    return '<div class="gm-bar"><div class="field"><label for="gm-pq">찾기</label><input id="gm-pq" type="search" data-gf="pq" value="' + e(GM.f.pq || "") + '" placeholder="이름·효과·비밀·자리"></div>' +
+      sel("gm-pst", "pstory", "이야기", uniq(P.map(storyOf)).sort(), GM.f.pstory) +
+      sel("gm-pk", "pk", "종류", ["프라이즈", "단서"], GM.f.pk) +
+      sel("gm-pss", "pst", "상태", STATUS, GM.f.pst) +
+      sel("gm-pgp", "pgp", "자리", uniq(P.map(function (r) { return giboPlace(r).name; })), GM.f.pgp) + "</div>" +
       '<p class="hint gm-prize-rule"><b>프라이즈</b>: 비밀이 붙은 물건. 가진 자만 그 비밀을 안다(GM이 쪽지로 건넨다). 정보 판정으로는 알 수 없고 건네받거나 빼앗아야 한다. 전투에서 가진 자가 쓰러지면 그 칸에 떨어지고, 인접한 캐릭터가 행동 없이 줍는다. <b>단서</b>: 구역에 박힌 비석·석각·벽·서가. 옮길 수 없고, 그 구역에서 지정 특기 판정에 성공하면 비밀을 얻는다. 탁본·사본을 뜨면(《예술》) 같은 비밀의 프라이즈가 된다.</p>';
+  }
+  function prizeList() {
+    var f = GM.f, t = (f.pq || "").trim();
+    var rows = GM.gibo.filter(function (r) {
+      return isPrize(r) && (!f.pstory || storyOf(r) === f.pstory) && (!f.pk || r.cat === f.pk) && (!f.pst || (r.status || "미정") === f.pst) && (!f.pgp || giboPlace(r).name === f.pgp) &&
+        (!t || (r.n + " " + r.e + " " + whereText(r) + " " + (r.memo || "") + " " + storyOf(r)).indexOf(t) >= 0);
+    });
+    if (!rows.length) return '<p class="hint">' + (GM.gibo.some(isPrize) ? "조건에 맞는 프라이즈가 없어요." : "아직 프라이즈가 없어요.") + "</p>";
+    rows.sort(function (a, b) { return storyOf(a).localeCompare(storyOf(b)) || (a.cat === b.cat ? 0 : a.cat === "프라이즈" ? -1 : 1) || (a.no || 0) - (b.no || 0); });
+    var prev = null;
+    return '<p class="count">' + rows.length + "개 · 이야기 → 종류 순</p>" + '<div class="gm-rows">' + rows.map(function (r) {
+      var open = GM.open === "g:" + r.id, key = [storyOf(r), r.cat], hd = heads(prev, key, ["h3", "h4"]); prev = key;
+      return hd + '<article class="gm-row' + (open ? " open" : "") + '"><button type="button" class="gm-head" data-act="open" data-id="g:' + r.id + '" aria-expanded="' + open + '">' +
+        '<b>' + e(r.n) + "</b>" + '<span class="gm-meta">' + e(r.cat) + " · " + e(r.src) + "</span>" +
+        '<span class="gm-where">' + e(whereText(r)) + "</span>" + '<span class="gm-st st-' + e(r.status || "미정") + '">' + e(r.status || "미정") + "</span></button>" +
+        (open ? giboEditor(r) : "") + "</article>";
+    }).join("") + "</div>";
   }
 
 
@@ -297,6 +327,7 @@
   function drawList() {
     var box = q("#gm-list"); if (!box) return;
     if (GM.tab === "gibo") box.innerHTML = giboList();
+    else if (GM.tab === "prize") box.innerHTML = prizeList();
     else if (GM.tab === "npc") box.innerHTML = npcList();
     else if (GM.tab === "enemy") { if (window.WX_ENEMY) WX_ENEMY.draw(box, { DB: DB, COL_N: COL_N, GM: GM, go: function (tab, id) { GM.tab = tab; GM.open = id; drawBody(); } }); }
     else box.innerHTML = dungeonList();
@@ -305,10 +336,10 @@
   function giboList() {
     var f = GM.f, t = (f.q || "").trim();
     var rows = GM.gibo.filter(function (r) {
-      return (!f.cat || r.cat === f.cat) && (!f.src || r.src === f.src) && (!f.st || (r.status || "미정") === f.st) && (!f.gp || giboPlace(r).name === f.gp) &&
+      return !isPrize(r) && (!f.cat || r.cat === f.cat) && (!f.src || r.src === f.src) && (!f.st || (r.status || "미정") === f.st) && (!f.gp || giboPlace(r).name === f.gp) &&
         (!t || (r.n + " " + r.e + " " + whereText(r) + " " + (r.memo || "")).indexOf(t) >= 0);
     });
-    if (!rows.length) return '<p class="hint">' + (GM.gibo.length ? "조건에 맞는 기보가 없어요." : "아직 등록된 기보가 없어요.") + "</p>";
+    if (!rows.length) return '<p class="hint">' + (GM.gibo.some(function (r) { return !isPrize(r); }) ? "조건에 맞는 기보가 없어요." : "아직 등록된 기보가 없어요.") + "</p>";
     var prevG = null;
     return '<p class="count">' + rows.length + "개 · 상태 → 자리 → 분류 순</p>" + '<div class="gm-rows">' + giboSorted(rows).map(function (x) {
       var r = x.r, open = GM.open === "g:" + r.id, key = [ST_LABEL[x.st] || x.st, x.p.name, r.cat || "분류 없음"], hd = heads(prevG, key, ["h3", "h4", "h5"]); prevG = key;
@@ -344,6 +375,7 @@
       '<div class="field"><label for="ed-zone">구역</label><select id="ed-zone" data-ed="zone">' + zoneOpts(r.map, r.zone) + "</select></div>" +
       '<div class="field"><label for="ed-holder">소지 NPC</label><select id="ed-holder" data-ed="holder">' + npcOpts(r.holder) + "</select></div>" +
       '<div class="field"><label for="ed-pool">던전 묶음</label><input id="ed-pool" data-ed="pool" value="' + e(r.pool || "") + '" placeholder="예: 고분"></div>' +
+      (isPrize(r) ? '<div class="field"><label for="ed-story">이야기</label><input id="ed-story" data-ed="story" value="' + e(r.story || "") + '" placeholder="예: 원말 사극 — 창랑회"></div>' : "") +
       '<div class="field wide"><label for="ed-memo">메모</label><textarea id="ed-memo" data-ed="memo" rows="2" placeholder="단서, 지키는 자, 얻는 조건">' + e(r.memo || "") + "</textarea></div>" +
       "</div>" +
       '<div class="gm-actions"><button type="submit" class="btn small">저장</button>' + (m ? '<a class="btn small" href="' + mapHref(m) + '">강호도에서 보기</a>' : "") + '<span class="gm-saved" aria-live="polite">' + (GM.saved === r.id ? "저장했어요" : "") + '</span></div></form>';

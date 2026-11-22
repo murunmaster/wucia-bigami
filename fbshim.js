@@ -78,12 +78,28 @@ window.WX_FB = true;
         var j = JSON.parse(t), docs = (j && j.docs) || [];
         /* GM 서고(NPC·기보·던전)만 골라 가져올 수 있다. 플레이어 자료(PC·방명록·공지)는 그대로 둔다 */
         var gm = docs.filter(function (d) { return /^(gmn-|gmg-|gmnpc|gmgibo)/.test(d.path || ""); });
-        if (gm.length && confirm("GM 서고(NPC·기보) 문서 " + gm.length + "개만 덮어쓸까요?\n(PC·방명록·공지는 건드리지 않아요)")) docs = gm;
+        var gmOnly = false;
+        if (gm.length && confirm("GM 서고(NPC·기보) 문서 " + gm.length + "개만 덮어쓸까요?\n(PC·방명록·공지는 건드리지 않아요. 파일에 없는 서고 문서는 지워요. 던전메이커 던전은 남겨요)")) { docs = gm; gmOnly = true; }
         else if (!confirm("전체 " + docs.length + "개 문서를 덮어씁니다. 진행할까요?")) return;
-        var fs = firebase.firestore(), i = 0, bad = 0;
+        var fs = firebase.firestore(), i = 0, bad = 0, gone = 0;
         lab.firstChild.textContent = "가져오는 중 0/" + docs.length;
+        /* GM 서고만 가져올 때: 파일에 없는 서고 문서(Claude 쪽에서 지운 기보·NPC)를 지운다. dg- 던전 문서는 남긴다 */
+        function prune() {
+          var have = {}, cols = {};
+          docs.forEach(function (d) { have[d.path] = 1; cols[d.path.split("/")[0]] = 1; });
+          return Promise.all(Object.keys(cols).map(function (c) {
+            return fs.collection(c).get().then(function (s) {
+              return Promise.all(s.docs.filter(function (x) { return !have[c + "/" + x.id] && !/^dg-/.test(x.id); }).map(function (x) { gone++; return x.ref.delete(); }));
+            });
+          })).catch(function (e) { console.warn("prune", e); });
+        }
         function next() {
-          if (i >= docs.length) { alert("끝났어요. " + (docs.length - bad) + "개 저장" + (bad ? ", " + bad + "개 실패" : "")); location.reload(); return; }
+          if (i >= docs.length) {
+            (gmOnly ? prune() : Promise.resolve()).then(function () {
+              alert("끝났어요. " + (docs.length - bad) + "개 저장" + (bad ? ", " + bad + "개 실패" : "") + (gone ? ", " + gone + "개 지움" : "")); location.reload();
+            });
+            return;
+          }
           var d = docs[i++];
           fs.doc(d.path).set(d.data).catch(function (e) { bad++; console.warn(d.path, e); }).then(function () { lab.firstChild.textContent = "가져오는 중 " + i + "/" + docs.length; next(); });
         }
