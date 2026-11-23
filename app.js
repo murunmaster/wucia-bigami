@@ -73,12 +73,8 @@ var GROUPS = {
   "세외": { field: "외공", schools: { "북해빙궁": ["장", "음기"], "포달랍궁": ["지", "법력"], "동영": ["보법", "도"], "서역": ["조", "환술"], "천축": ["각", "방술"], "해동": ["초혼", "예술", "도"], "북원": ["경공", "궁"] } },
   "실전문파": { field: "문파마다", needBg: "마지막 전인(最後傳人)", sf: { "아미파": "내공", "청성파": "병기", "공동파": "내공", "점창파": "병기", "종남파": "내공", "창랑회": "강호", "의살문": "지략", "하생회": "술법", "무적여가": "외공" }, schools: { "아미파": ["점혈", "법력"], "청성파": ["검", "부적"], "공동파": ["권", "하단전"], "점창파": ["검", "경공"], "종남파": ["검", "진법"], "창랑회": ["도", "기세"], "의살문": ["암기", "추적"], "하생회": ["법력", "섭혼"], "무적여가": ["권", "발경"] } }
 };
-var FORMS = [
-  { k: "연환(連環)형", f: "연환", e: "이번 차례에 공격 무공 하나를 코스트 없이 3번까지 연달아 쓴다. 2번째부터 명중 판정 유리점 1. 기 소진 없음" },
-  { k: "흡성(吸星)형", f: "흡성", e: "2칸 내 적 1명 사격전 2뎀, 입힌 만큼 자신 회복. 다음 라운드 종료까지 대상 코스트 한계 -2, 자신 +2" },
-  { k: "신법(身法)형", f: "신법", e: "곧바로 4칸 이동. 이번 라운드 동안 자신을 노린 명중 판정 불리점 2, 자신을 노린 공격 1번은 빗나감. 다음 공격 무공은 대상 회피 불리점 1·대미지 +1" },
-  { k: "호신강기(護身罡氣)형", f: "호신강기", e: "자신과 인접한 아군: 다음 라운드 종료까지 받는 접근전·사격전 대미지 1 감소, 상태이상에 걸리지 않음. 자신이 처음 받는 대미지 1번은 3 감소" }
-];
+/* 오의 형태: 공월무 네 유형(일격·영역·화신·만상)과 방식. 정의는 rulefix.js WX_OG_FORMS */
+var FORMS = (window.WX_OG_FORMS || []).map(function (f) { return { k: f.k, f: f.k, e: f.type + " — " + f.td + " " + f.e }; });
 
 /* ───────── 유틸 ───────── */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -1097,7 +1093,7 @@ function renderMods() {
     card: function (r) { return simpleCard(r, "<span>대상 <b>" + esc(r.tgt) + "</b></span><span>" + esc(r.lim) + "</span>"); }
   });
 }
-function modFits(m, form) { return !m.tgt || m.tgt.indexOf("모든") >= 0 || m.tgt.indexOf(form) >= 0; }
+function modFits(m, form) { if (!m.tgt || m.tgt.indexOf("모든") >= 0) return true; if (window.WX_OG && WX_OG.fitsTgt) return WX_OG.fitsTgt(m.tgt, form); return m.tgt.indexOf(form) >= 0; }
 
 /* ───────── 캐릭터 빌더 ───────── */
 function blankChar() { return { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: "", alias: "", lv: "삼류", group: "", school: "", skills: [], mg: [], bg: [], items: {}, money: 0, ougi: [], ogVer: 3, mkVer: (window.WX_MK_VER || 3), notes: "", other: false, gapManual: false, gaps: [], wrapH: false, wrapV: false, exp: 0, expLog: [], status: "플레이 중", portrait: "", pub: false, rel: [], atk: "" }; }
@@ -1106,12 +1102,12 @@ var STATUSES = ["플레이 중", "쉬는 중", "은퇴", "사망"];
 var BASIC_ATK = "접근전 공격";
 /* 무공 이름 판: mkVer가 WX_MK_VER보다 낮으면 익힌 무공 이름을 지금 이름으로 옮긴다(rulefix.js WX_RENAME_ALL) */
 function mkUp(c) { var V = window.WX_MK_VER || 0; if ((c.mkVer || 0) >= V || !window.WX_RENAME_MG) return false; var r = WX_RENAME_MG(c.mg, c.mkVer || 0); c.mg = r.list; c.mkVer = V; return r.changed; }
-/* 오의 판: ogVer 2 = 2차 개편(옛 6형태 + 새 4형태), 3 = 옛 6형태 폐지(새 4형태만).
-   2 → 3은 지우지 않고 새 형태로 옮긴다(rulefix.js WX_OG). 그보다 옛것은 지운다. */
-var OG_VER = 3;
+/* 오의 판: ogVer 2 = 2차 개편(옛 6형태 + 새 4형태), 3 = 옛 6형태 폐지(새 4형태만), 4 = 공월무 네 유형(일격·영역·화신·만상).
+   2·3 → 4는 지우지 않고 새 형태로 옮긴다(rulefix.js WX_OG). 그보다 옛것은 지운다. */
+var OG_VER = 4;
 function ogUp(c) {
   if (c.ogVer === OG_VER) return false;
-  if (c.ogVer === 2 && window.WX_OG) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")); c.ougi = r.list; c.ogVer = OG_VER; return r.changed; }
+  if ((c.ogVer === 2 || c.ogVer === 3) && window.WX_OG) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "")); c.ougi = r.list; c.ogVer = OG_VER; return r.changed; }
   var had = (c.ougi || []).length > 0; c.ougi = []; c.ogN = 0; c.ogVer = OG_VER; return had;
 }
 function fixChar(c) { ogUp(c); mkUp(c); var b = blankChar(); Object.keys(b).forEach(function (k) { if (c[k] === undefined) c[k] = b[k]; }); if ((c.mg || []).indexOf(BASIC_ATK) >= 0) c.mg = c.mg.filter(function (n) { return n !== BASIC_ATK; }); return c; }
@@ -1298,7 +1294,7 @@ function renderBuilder() {
       return '<div class="ougi"><div class="row2">' +
         '<div class="field"><label for="og-n' + i + '">오의 이름</label><input id="og-n' + i + '" data-og="' + i + '" data-k="name" value="' + esc(o.name) + '"></div>' +
         '<div class="field"><label for="og-s' + i + '">지정특기</label><select id="og-s' + i + '" data-og="' + i + '" data-k="skill">' + opts(allSk, o.skill, "고르세요") + "</select></div>" +
-        '<div class="field"><label for="og-f' + i + '">형태</label><select id="og-f' + i + '" data-og="' + i + '" data-k="form">' + opts(FORMS.map(function (f) { return f.k; }), o.form, "고르세요") + "</select></div></div>" +
+        '<div class="field"><label for="og-f' + i + '">유형·방식</label><select id="og-f' + i + '" data-og="' + i + '" data-k="form">' + opts(FORMS.map(function (f) { return f.k; }), o.form, "고르세요") + "</select></div></div>" +
         (form ? '<p class="hint">' + esc(form.e) + "</p>" : "") +
         '<div class="lbl">개조 ' + modBalance(o, L) + '</div><div class="picker" style="max-height:240px">' +
         mods.map(function (m) {
@@ -1632,7 +1628,7 @@ function withSecret(uid, pc) {
   var sc = (OGS[uid] || {})[pc.id];
   if (!sc && uid === MY_ID) { var loc = chars.filter(function (x) { return x.id === pc.id; })[0]; if (loc) sc = secretOf(loc); }
   if (!sc) return pc;
-  var o = JSON.parse(JSON.stringify(pc)); o.ougi = sc.ogVer === OG_VER ? (sc.ougi || []) : sc.ogVer === 2 && window.WX_OG ? WX_OG.migrate(sc.ougi, (pc.group || "") + " " + (pc.school || "")).list : []; o.ogVer = OG_VER; delete o.ogN;
+  var o = JSON.parse(JSON.stringify(pc)); o.ougi = sc.ogVer === OG_VER ? (sc.ougi || []) : (sc.ogVer === 2 || sc.ogVer === 3) && window.WX_OG ? WX_OG.migrate(sc.ougi, (pc.group || "") + " " + (pc.school || "")).list : []; o.ogVer = OG_VER; delete o.ogN;
   o.rel = (o.rel || []).map(function (r, i) { return (sc.relOg || [])[i] ? Object.assign({}, r, { og: sc.relOg[i] }) : r; });
   return o;
 }
@@ -2109,7 +2105,7 @@ function runSync(mcp, art, btn) {
    무협 데이터 시트를 통째로 사본 떠서(수식·드롭다운 유지) '캐릭터 시트' 탭의 입력 칸만 채운다. */
 var MCP = null;
 var CS = "'캐릭터 시트'!";
-var SHEET_FORMS = { "일격·근거리형": "일격(근거리형)", "일격·원거리형": "일격(원거리형)", "광역": "광역", "각성·판정 상승": "각성(판정 상승)", "각성·순간 성공": "각성(순간 성공)", "영역·데미지 감소": "영역(데미지 감소)", "영역·판정 감소형": "영역(판정 감소)", "방어·완전방어형": "방어(완전방어)", "방어·반격형": "방어(반격)", "회복·생명력 회복": "회복(생명력 회복)", "연환(連環)형": "연환", "흡성(吸星)형": "흡성", "신법(身法)형": "신법", "호신강기(護身罡氣)형": "호신강기" };
+var SHEET_FORMS = { "일격·근거리형": "일격(근거리형)", "일격·원거리형": "일격(원거리형)", "광역": "광역", "각성·판정 상승": "각성(판정 상승)", "각성·순간 성공": "각성(순간 성공)", "영역·데미지 감소": "영역(데미지 감소)", "영역·판정 감소형": "영역(판정 감소)", "방어·완전방어형": "방어(완전방어)", "방어·반격형": "방어(반격)", "회복·생명력 회복": "회복(생명력 회복)", "연환(連環)형": "연환", "흡성(吸星)형": "흡성", "신법(身法)형": "신법", "호신강기(護身罡氣)형": "호신강기", "일격·절(絶)": "일격(근거리형)", "일격·관(貫)": "일격(원거리형)", "일격·흡(吸)": "흡성", "영역·호법(護法)": "호신강기", "영역·금법(禁法)": "영역(판정 감소)", "영역·정법(正法)": "영역(판정 감소)", "화신·신(迅)": "신법", "화신·각(覺)": "각성(판정 상승)", "화신·회(回)": "회복(생명력 회복)", "만상·연(連)": "연환", "만상·우(雨)": "광역" };
 function exportToSheet(c, btn) {
   var st = $("#s-exst");
   function say(m, link) { st.hidden = false; st.innerHTML = esc(m) + (link ? ' <a href="' + esc(link) + '" target="_blank" rel="noopener">시트 열기</a>' : ""); }

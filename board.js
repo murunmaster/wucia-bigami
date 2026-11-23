@@ -99,7 +99,7 @@
     return " — 신걸아불사공: 취기 3을 모두 쓰고 일어선다(♥1)";
   }
   /* ── 오의 형태 ── */
-  function ogKindB(o) { var f = String(o.form || ""); return /^연환/.test(f) ? "chain" : /^흡성/.test(f) ? "drain" : /^신법/.test(f) ? "dash" : /^호신강기/.test(f) ? "aura" : ""; }
+  function ogKindB(o) { var f = String(o.form || ""); if (window.WX_OG && WX_OG.mapForm) f = WX_OG.mapForm(f); return /^만상·연/.test(f) ? "chain" : /^일격·흡/.test(f) ? "drain" : /^화신·신/.test(f) ? "dash" : /^영역·호법/.test(f) ? "aura" : /^일격·/.test(f) ? "strike" : /^만상·우/.test(f) ? "rain" : /^영역·/.test(f) ? "zone" : /^화신·/.test(f) ? "body" : /^연환/.test(f) ? "chain" : /^흡성/.test(f) ? "drain" : /^신법/.test(f) ? "dash" : /^호신강기/.test(f) ? "aura" : ""; }
   function ogHas(o, n) { return (o.mods || []).some(function (m) { return String(m).indexOf(n) === 0; }); }
   function clxOf(t) { return t.clx && t.clx.u >= R.round ? t.clx.v : 0; }
   function chOn(t) { return !!t.ch && t.ch.r === R.round && t.ch.k < t.ch.n; }
@@ -135,6 +135,17 @@
       say(head + ". " + (until === R.round + 1 ? "다음 라운드" : until - R.round + "라운드 뒤") + " 종료까지 자신과 " + (rad === 1 ? "인접한" : "2칸 안의") + " 아군은 받는 접근전·사격전 대미지 " + dr + " 감소, 상태이상에 걸리지 않는다. 자신이 처음 받는 대미지 1번은 3 줄인다." + (ogHas(o, "반진") ? " 반진: 줄일 때마다 공격자에게 집단전 1점." : "") + (ogHas(o, "고정") ? " 고정: 이번·다음 라운드 이동할 수 없다." : "") + " 받을 대미지 상자의 '호신강기' 단추로 줄입니다.", "act", u, t.n);
       return;
     }
+    var inf = window.WX_OG && WX_OG.info ? WX_OG.info(WX_OG.mapForm(o.form)) : null;
+    if (k === "strike") {
+      var rg2 = /·절/.test(o.form) ? 1 : 3 + (ogHas(o, "뻗기") ? 1 : 0) - (ogHas(o, "단척") ? 1 : 0);
+      if (!b) { MODE = { type: "og", o: o, rg: rg2 }; INFO = "일격: 간격 " + rg2 + " 안의 적 1명을 누르세요."; draw(true); return; }
+      var d2 = T().dist(t, b); if (d2 > rg2) { toast("간격 " + rg2 + "인데 " + d2 + "칸 떨어져 있어요"); return; }
+      var ty = /·절/.test(o.form) ? "접근전" : "사격전", n2 = (/·절|·관|근거리/.test(o.form) ? 3 : 2) + (ogHas(o, "베기") ? 1 : 0) - (ogHas(o, "미력") ? 1 : 0); MODE = null;
+      U(b.id, { dq: (b.dq || []).concat([{ ty: ty, n: n2, mn: o.name, r: R.round, g: R.cur || 0 }]) }, u);
+      say(head + " → " + b.n + ": " + ty + " " + n2 + "점(회피할 수 없다)." + (/·절/.test(o.form) ? " 대가: " + t.n + "은(는) 다음 라운드 종료까지 회피 판정에 불리점 1." : "") + (/·관/.test(o.form) ? " 대가: " + t.n + "은(는) 다음 라운드 종료까지 이동할 수 없다." : "") + (ogHas(o, "뚫기") ? " 뚫기: 줄여도 1점은 잃는다." : "") + (ogHas(o, "역류") ? " 역류: " + b.n + "은(는) 다음 라운드 종료까지 보조 무공을 쓸 수 없다." : "") + (ogHas(o, "삼키기") ? " 삼키기: 1점이라도 잃으면 " + t.n + " 생명력 1 회복." : ""), "act", u, t.n);
+      return;
+    }
+    if (inf) { say(head + ". " + inf.e + (k === "zone" && ogHas(o, "나누기") ? " 나누기: 둘레 2칸(5×5)." : "") + (k === "zone" && ogHas(o, "파법") ? " 파법: 영역 안의 적은 오의를 쓸 수 없다." : "") + (ogHas(o, "버티기") ? " 버티기: 1라운드 더." : "") + (ogHas(o, "반동") ? " 반동: 화신이 끝난 다음 라운드 모든 판정 불리점 1." : "") + " (판 위 효과는 손으로 적용합니다.)", "act", u, t.n); return; }
     say(head, "act", u, t.n);
   }
   function ougiOf(t) {

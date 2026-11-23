@@ -96,7 +96,7 @@
       try { c = str ? JSON.parse(n.sheet) : JSON.parse(JSON.stringify(n.sheet)); } catch (x) { return; }
       if (!c) return;
       var ch = false;
-      if ((c.ougi || []).length) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || "")); if (r.changed) { c.ougi = r.list; c.ogVer = 3; ch = true; } }
+      if ((c.ougi || []).length) { var r = WX_OG.migrate(c.ougi, (c.group || "") + " " + (c.school || "") + " " + (n.g || "")); if (r.changed || (c.ogVer || 0) < (WX_OG.ver || 3)) { c.ougi = r.list; c.ogVer = WX_OG.ver || 3; ch = true; } }
       /* 무공 이름 바꾸기(11-08 2차): 익힌 무공 이름을 지금 이름으로 */
       if (window.WX_RENAME_MG && (c.mkVer || 0) < (window.WX_MK_VER || 0)) { var q = WX_RENAME_MG(c.mg, c.mkVer || 0); c.mg = q.list; c.mkVer = window.WX_MK_VER; ch = true; }
       if (!ch) return;

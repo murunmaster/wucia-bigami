@@ -753,9 +753,9 @@
   };
 
   /* ── 오의 ── */
-  function ogKind(o) { var f = o.form || ""; return /^일격/.test(f) ? "strike" : /^광역/.test(f) ? "wide" : /각성·판정/.test(f) ? "awake" : /각성·순간/.test(f) ? "instant" : /영역·데미지/.test(f) ? "zdr" : /영역·판정/.test(f) ? "zdis" : /완전방어/.test(f) ? "guard" : /반격/.test(f) ? "counter" : /회복/.test(f) ? "heal" : /^연환/.test(f) ? "chain" : /^흡성/.test(f) ? "drain" : /^신법/.test(f) ? "dash" : /^호신강기/.test(f) ? "aura" : ""; }
+  function ogKind(o) { var f = o.form || ""; var nk = /^일격·흡/.test(f) ? "drain" : /^일격·/.test(f) ? "strike" : /^영역·호법/.test(f) ? "aura" : /^영역·금법/.test(f) ? "zban" : /^영역·정법/.test(f) ? "zdis" : /^화신·신/.test(f) ? "dash" : /^화신·각/.test(f) ? "awake" : /^화신·회/.test(f) ? "heal" : /^만상·연/.test(f) ? "chain" : /^만상·우/.test(f) ? "wide" : ""; if (nk) return nk; return /^일격/.test(f) ? "strike" : /^광역/.test(f) ? "wide" : /각성·판정/.test(f) ? "awake" : /각성·순간/.test(f) ? "instant" : /영역·데미지/.test(f) ? "zdr" : /영역·판정/.test(f) ? "zdis" : /완전방어/.test(f) ? "guard" : /반격/.test(f) ? "counter" : /회복/.test(f) ? "heal" : /^연환/.test(f) ? "chain" : /^흡성/.test(f) ? "drain" : /^신법/.test(f) ? "dash" : /^호신강기/.test(f) ? "aura" : ""; }
   function hasMod(o, n) { return (o.mods || []).some(function (m) { return m === n || m.indexOf(n) === 0; }); }
-  function ogRange(o) { var k = ogKind(o), r = /근거리/.test(o.form) ? 2 : /원거리/.test(o.form) ? 4 : k === "wide" ? 4 : 0; if (k === "strike" || k === "wide") r += (hasMod(o, "뻗기") ? 1 : 0) - (hasMod(o, "단척") ? 1 : 0); return r; }
+  function ogRange(o) { if (/^일격·|^만상·우/.test(o.form || "")) { var nr = /·절/.test(o.form) ? 1 : /·관/.test(o.form) ? 3 : /·흡/.test(o.form) ? 2 : 3; if (!/·절/.test(o.form)) nr += (hasMod(o, "뻗기") ? 1 : 0) - (hasMod(o, "단척") ? 1 : 0); return Math.max(1, nr); } var k = ogKind(o), r = /근거리/.test(o.form) ? 2 : /원거리/.test(o.form) ? 4 : k === "wide" ? 4 : 0; if (k === "strike" || k === "wide") r += (hasMod(o, "뻗기") ? 1 : 0) - (hasMod(o, "단척") ? 1 : 0); return r; }
   B.ougiOk = function (f, o, target) {
     if (f.ogUsed[o.i] || hasBuff(f, "noougi")) return false;
     if (this.inZone(f, "noougi").some(function (z) { return z.side !== f.side; })) return false;
@@ -797,7 +797,10 @@
     if (this.breakOugi(f, o, target)) return;
     var dur = 2 + (hasMod(o, "버티기") ? 1 : 0) - (hasMod(o, "단시") ? 1 : 0);
     if (k === "strike") {
-      var dmg = (/근거리/.test(o.form) ? RULES.ogNear : RULES.ogFar) + (hasMod(o, "베기") ? 1 : 0) - (hasMod(o, "미력") ? 1 : 0);
+      var dmg = (/근거리|·절|·관/.test(o.form) ? RULES.ogNear : RULES.ogFar) + (hasMod(o, "베기") ? 1 : 0) - (hasMod(o, "미력") ? 1 : 0);
+      if (/·관/.test(o.form)) f.buffs.push({ key: "immob", v: 1, left: 2 });
+      if (hasMod(o, "역류") && target) this.addBuff(target, { key: "nosup", v: 1 }, f, dur);
+      if (/·절/.test(o.form)) f.buffs.push({ key: "ea", v: -1, left: 2 });
       var tgts = [target];
       var gd = this.aiGuard(target, f, { type: "접근전" }, dmg), gdr = 0;
       if (gd) { this.useOugi(gd.g, gd.o, f, queue); gdr = this.guardAmount(gd.o); if (ogKind(gd.o) === "counter" || hasMod(gd.o, "되받기")) { var cd = (ogKind(gd.o) === "counter" ? 1 : 0) + (hasMod(gd.o, "되받기") ? 1 : 0); queue.push(function () { self.hurt(f, "접근전", cd, gd.g); }); } }
@@ -805,7 +808,7 @@
         var lostAny = false;
         tgts.forEach(function (t) {
           var before = hpLeft(t);
-          self.hurt(t, "접근전", dmg, f, { pierce: hasMod(o, "뚫기"), og: true, ogDr: gdr });
+          self.hurt(t, /·관/.test(o.form) ? "사격전" : "접근전", dmg, f, { pierce: hasMod(o, "뚫기"), og: true, ogDr: gdr });
           if (hasMod(o, "날리기")) self.hurt(t, "사격전", 1, f);
           if (hpLeft(t) < before) { lostAny = true; if (hasMod(o, "흩뜨리기")) self.statusRoll(t); }
           if (hasMod(o, "결사") && alive(t) && hpLeft(t) > 0) self.hurt(f, "사격전", 2, null);
@@ -813,21 +816,21 @@
         if (lostAny && hasMod(o, "삼키기")) self.heal(f, 1);
       });
     } else if (k === "wide") {
-      var cells = 4 + (hasMod(o, "뻗기") ? 1 : 0) - (hasMod(o, "단척") ? 1 : 0);
+      var cells = /^만상·우/.test(o.form) ? (hasMod(o, "미력") ? 3 : 9) : 4 + (hasMod(o, "뻗기") ? 1 : 0) - (hasMod(o, "단척") ? 1 : 0);
       var hit = this.f.filter(function (g) { return alive(g) && (hasMod(o, "혼전") ? g !== f : g.side !== f.side) && cheb(g.pos, target.pos) <= 1; }).slice(0, cells);
-      var dm2 = RULES.ogWide - (hasMod(o, "미력") ? 1 : 0);
+      var dm2 = /^만상·우/.test(o.form) ? 2 : RULES.ogWide - (hasMod(o, "미력") ? 1 : 0);
       queue.push(function () {
         var lostAny = false;
         hit.forEach(function (g, i) { var before = hpLeft(g); self.hurt(g, "사격전", dm2, f, { pierce: hasMod(o, "뚫기"), og: true }); if (i === 0 && hasMod(o, "날리기")) self.hurt(g, "사격전", 1, f); if (hpLeft(g) < before) { lostAny = true; if (hasMod(o, "흩뜨리기")) self.statusRoll(g); } });
         if (lostAny && hasMod(o, "삼키기")) self.heal(f, 1);
       });
     }
-    else if (k === "awake") { f.buffs.push({ key: "all", v: 2, left: dur }); if (hasMod(o, "나누기")) { var al = this.friends(f).filter(function (g) { return g !== f && cheb(g.pos, f.pos) <= 2; })[0]; if (al) al.buffs.push({ key: "all", v: 2, left: dur }); } }
+    else if (k === "awake") { var awv = /^화신/.test(o.form) ? 1 : 2; f.buffs.push({ key: "all", v: awv, left: dur }); if (/^화신/.test(o.form)) f.buffs.push({ key: "dm", v: 1, left: dur, uses: 1 }); if (/^화신/.test(o.form) && hasMod(o, "반동")) f.buffs.push({ key: "all", v: -1, left: dur + 1, late: dur }); if (hasMod(o, "나누기")) { var al = this.friends(f).filter(function (g) { return g !== f && cheb(g.pos, f.pos) <= 2; })[0]; if (al) al.buffs.push({ key: "all", v: awv, left: dur }); } }
     else if (k === "instant") { f.instant = { name: o.name, sp: hasMod(o, "빛내기"), next: hasMod(o, "잇기") }; }
     else if (k === "chain") { var NO = RULES.newOg; f.R.chain = NO.chainN + (hasMod(o, "잇기") ? 1 : 0) - (hasMod(o, "미력") ? 1 : 0); f.R.chainAdv = NO.chainAdv + (hasMod(o, "빛내기") ? 1 : 0); f.R.chainFree = hasMod(o, "연격"); if (hasMod(o, "탈력")) f.buffs.push({ key: "ea", v: -1, left: 1 }); }
     else if (k === "drain") {
-      var NO2 = RULES.newOg, dc = NO2.drainCl + (hasMod(o, "두르기") ? 1 : 0);
-      this.addBuff(target, { key: "cl", v: -dc }, f, dur); f.buffs.push({ key: "cl", v: dc, left: dur });
+      var NO2 = RULES.newOg, dc = (/^일격·흡/.test(o.form) ? 1 : NO2.drainCl) + (hasMod(o, "두르기") ? 1 : 0);
+      this.addBuff(target, { key: "cl", v: -dc }, f, dur); if (!/^일격·흡/.test(o.form)) f.buffs.push({ key: "cl", v: dc, left: dur });
       if (hasMod(o, "역류")) this.addBuff(target, { key: "nosup", v: 1 }, f, dur);
       if (NO2.drainHp) { var dh = Math.max(0, NO2.drainHp - (hasMod(o, "미력") ? 1 : 0)), tMg = isMg(target); queue.push(function () { var got = self.hurt(target, "사격전", dh, f, { og: true, pierce: hasMod(o, "뚫기") }); if (hasMod(o, "역혈") && tMg) { self.say(f.name + " — 마기가 역류한다", "hit"); self.hurt(f, "사격전", 1, null); } else if (got) self.heal(f, got + (hasMod(o, "삼키기") ? 1 : 0)); }); }
       this.say(target.name + " 코스트 한계 -" + dc + ", " + f.name + " +" + dc, "og");
@@ -838,7 +841,7 @@
       f.buffs.push({ key: "hd", v: NO3.dashHd, left: dur - 1 || 1 });
       if (NO3.dashDm) f.buffs.push({ key: "dm", v: NO3.dashDm + (hasMod(o, "베기") ? 1 : 0), left: 1, uses: 1 });
       if (hasMod(o, "탈력")) f.buffs.push({ key: "ea", v: -1, left: 1 });
-      if (NO3.dashNeg) f.buffs.push({ key: "negall", v: 1, left: 1, uses: NO3.dashNeg + (hasMod(o, "버티기") ? 1 : 0) });
+      if (NO3.dashNeg) f.buffs.push({ key: "negall", v: 1, left: 1, uses: NO3.dashNeg + (/^화신·신/.test(o.form) ? 1 : 0) + (hasMod(o, "버티기") ? 1 : 0) });
       if (NO3.dashEd || hasMod(o, "베기")) f.buffs.push({ key: "ed", v: Math.max(NO3.dashEd, 1), left: 1, uses: 1 });
     }
     else if (k === "aura") {
@@ -847,7 +850,11 @@
       if (hasMod(o, "고정")) f.buffs.push({ key: "immob", v: 1, left: 2 });
     }
     else if (k === "zdr") this.zones.push({ kind: "dr", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: 1, rounds: dur, v: 2 + (hasMod(o, "두르기") ? 1 : 0) - (hasMod(o, "박벽") ? 1 : 0), follow: hasMod(o, "따르기") ? f : null });
+    else if (k === "zdis" && /^영역·/.test(o.form)) this.zones.push({ kind: "dis", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: hasMod(o, "나누기") ? 3 : 2, rounds: dur, follow: f });
     else if (k === "zdis") this.zones.push({ kind: "dis", side: f.side, c: { x: (target || f).pos.x, y: (target || f).pos.y }, rad: 1, rounds: dur, squeeze: hasMod(o, "조이기"), follow: hasMod(o, "따르기") ? f : null });
+    else if (k === "zban") { var zr = hasMod(o, "나누기") ? 3 : 2; this.zones.push({ kind: "nosup", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: zr, rounds: dur, follow: f }); this.zones.push({ kind: "noougi", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: zr, rounds: dur, follow: f }); var zself = this; this.foes(f).forEach(function (g) { if (g.pos && cheb(g.pos, f.pos) <= zr) zself.addBuff(g, { key: "cl", v: -2 }, f, dur); }); }
+    if (/^영역·/.test(o.form) && hasMod(o, "파법")) this.zones.push({ kind: "noougi", side: f.side, c: { x: f.pos.x, y: f.pos.y }, rad: (hasMod(o, "나누기") ? 1 : 0) + (/^영역·정법/.test(o.form) ? 2 : 1), rounds: dur, follow: f });
+    if (k === "heal" && /^화신·회/.test(o.form)) { this.heal(f, 2); this.cleanse(f); f.stun = false; }
     else if (k === "heal") {
       var h = Math.max(d6(), d6()); if (hasMod(o, "다지기")) h = Math.max(3, h); if (hasMod(o, "기허")) h = Math.max(0, h - 2);
       this.heal(f, h); if (hasMod(o, "씻기")) { this.cleanse(f); f.stun = false; }
@@ -1445,6 +1452,7 @@
     var aw = this.ougiReady(f, "awake")[0]; if (aw && this.round <= 2) this.useOugi(f, aw, f, queue);
     var zd = this.ougiReady(f, "zdr")[0]; if (zd && this.friends(f).filter(function (h) { return cheb(h.pos, f.pos) <= 1; }).length >= 2) this.useOugi(f, zd, f, queue);
     var zs = this.ougiReady(f, "zdis")[0]; if (zs) { var near = foes.filter(function (g) { return cheb(g.pos, f.pos) <= 2; }); if (near.length) this.useOugi(f, zs, near[0], queue); }
+    var zb = this.ougiReady(f, "zban")[0]; if (zb && foes.some(function (g) { return cheb(g.pos, f.pos) <= 1; }) && (this.round >= 2 || this.adjFoes(f).length >= 2 || Math.random() < 0.5)) this.useOugi(f, zb, f, queue);
     var ins = this.ougiReady(f, "instant")[0];
     if (ins && hasMod(ins, "뒤집기")) { f.flip = ins; ins = null; }
     var dr0 = this.ougiReady(f, "drain")[0]; if (dr0 && this.round <= 3) { var dt = foes.filter(function (g) { return dist(f.pos, g.pos) <= 2 + (hasMod(dr0, "뻗기") ? 1 : 0) - (hasMod(dr0, "단척") ? 1 : 0) && self.ougiOk(f, dr0, g); }).sort(function (a, b) { return b.pow - a.pow; })[0]; if (dt) this.useOugi(f, dr0, dt, queue); }
@@ -1670,8 +1678,9 @@
   /* ── 무작위 오의 ── */
   var OG_PRE = ["자하", "청풍", "백운", "천강", "현천", "태을", "일월", "명월", "광풍", "고검", "북명", "철골", "만리", "천애", "유랑", "풍운"];
   var OG_PRE_M = ["혈영", "귀영", "단혼", "흑풍", "음풍", "마영", "적염", "유명"];
-  var OG_SUF = { strike: ["일섬", "절명", "단혼", "관일", "파천"], wide: ["낙성", "폭우", "분운", "만천"], awake: ["개안", "통명"], instant: ["돈오", "귀원"], zdr: ["옥문", "천라", "결계", "진세"], zdis: ["천라", "결계", "진세", "옥문"], guard: ["철벽", "불괴", "금강", "부동"], counter: ["금강", "부동", "철벽"], heal: ["회춘", "소생", "환골", "귀식"], chain: ["연환", "연참", "추혼"], drain: ["흡성", "탈기", "탐혼"], dash: ["유영", "섬영", "환보"], aura: ["강기", "호체", "금종"] };
+  var OG_SUF = { strike: ["일섬", "절명", "단혼", "관일", "파천"], wide: ["낙성", "폭우", "분운", "만천"], awake: ["개안", "통명"], instant: ["돈오", "귀원"], zdr: ["옥문", "천라", "결계", "진세"], zdis: ["천라", "결계", "진세", "옥문"], guard: ["철벽", "불괴", "금강", "부동"], counter: ["금강", "부동", "철벽"], heal: ["회춘", "소생", "환골", "귀식"], chain: ["연환", "연참", "추혼"], drain: ["흡성", "탈기", "탐혼"], dash: ["유영", "섬영", "환보"], aura: ["강기", "호체", "금종"], zban: ["금제", "봉인", "단천"] };
   function modFits(form, tgt) {
+    if (window.WX_OG && WX_OG.fitsTgt && WX_OG.isNew && WX_OG.isNew(form)) return WX_OG.fitsTgt(tgt, form);
     return String(tgt || "").split("·").some(function (t) {
       t = t.trim();
       if (t === "모든 오의") return true;
@@ -1684,10 +1693,10 @@
     var L = A.limits[c.lv] || { og: 0, mod: 0 }, n = L.og + (grade === "두목" ? 1 : 0);
     var mods = A.mods(), out = [];
     var dark = /천마신교|사도/.test(c.group || "");
-    var forms = ["연환(連環)형", "흡성(吸星)형", "신법(身法)형", "호신강기(護身罡氣)형"];
+    var forms = window.WX_OG && WX_OG.forms ? WX_OG.forms.slice() : ["연환(連環)형", "흡성(吸星)형", "신법(身法)형", "호신강기(護身罡氣)형"];
     for (var i = 0; i < n; i++) {
       var form = pick(forms), k = ogKind({ form: form });
-      var fit = mods.filter(function (m) { return modFits(form, m.tgt) && ["빼앗기", "원한(怨恨)", "탁기(濁氣)", "일로(一路)", "편방(偏防)", "마성(魔性)"].indexOf(m.n) < 0; });
+      var fit = mods.filter(function (m) { return modFits(form, m.tgt) && ["빼앗기", "원한(怨恨)", "탁기(濁氣)", "일로(一路)", "편방(偏防)", "마성(魔性)", "반동(反動)"].indexOf(m.n) < 0; });
       var strong = fit.filter(function (m) { return m.t === "강점"; }), weak = fit.filter(function (m) { return m.t === "약점"; });
       var ns = Math.floor(Math.random() * 3), nw = Math.max(0, ns - L.mod), picked = [];
       function take(list, cnt) { list = list.slice(); for (var j = 0; j < cnt && list.length; j++) { var m = list.splice(Math.floor(Math.random() * list.length), 1)[0]; if ((m.n === "감추기" && picked.indexOf("호명(呼名)") >= 0) || (m.n === "호명(呼名)" && picked.indexOf("감추기") >= 0)) continue; picked.push(m.n); } }
@@ -1904,11 +1913,11 @@
       if (t.dataset.og != null) { var oi = Number(t.dataset.og), L2 = P.sel.og || []; P.sel.og = t.checked ? L2.concat([oi]) : L2.filter(function (v) { return v !== oi; }); return; }
       if (t.id === "sp-pass") { P.sel = {}; w.ok(null); return; }
       if (t.id === "sp-act") {
-        var s = P.sel, ogs = (s.og || []).map(function (i) { var o = me.ougi.filter(function (q) { return q.i === i; })[0], k = ogKind(o); return { i: i, tg: (k === "strike" || k === "wide" || k === "zdis") ? s.tg : null }; });
-        var needTg = ogs.some(function (o) { var k = ogKind(me.ougi.filter(function (q) { return q.i === o.i; })[0]); return (k === "strike" || k === "wide") && !o.tg; });
+        var s = P.sel, ogs = (s.og || []).map(function (i) { var o = me.ougi.filter(function (q) { return q.i === i; })[0], k = ogKind(o); return { i: i, tg: (k === "strike" || k === "wide" || k === "zdis" || k === "drain") ? s.tg : null }; });
+        var needTg = ogs.some(function (o) { var k = ogKind(me.ougi.filter(function (q) { return q.i === o.i; })[0]); return (k === "strike" || k === "wide" || k === "drain") && !o.tg; });
         if (needTg) { A.toast("공격 오의를 쓸 대상을 판에서 누르세요"); return; }
-        var badOg = ogs.filter(function (o) { var q = me.ougi.filter(function (z) { return z.i === o.i; })[0], k = ogKind(q), tg = P.b.f.filter(function (z) { return z.id === o.tg; })[0]; return k === "drain" && tg && dist(me.pos, tg.pos) > 2 + (hasMod(q, "뻗기") ? 1 : 0) - (hasMod(q, "단척") ? 1 : 0); });
-        if (badOg.length) { A.toast("오의가 닿지 않아요 (흡성 2칸)"); return; }
+        var badOg = ogs.filter(function (o) { var q = me.ougi.filter(function (z) { return z.i === o.i; })[0], k = ogKind(q), tg = P.b.f.filter(function (z) { return z.id === o.tg; })[0]; return (k === "drain" || k === "strike") && tg && dist(me.pos, tg.pos) > ogRange(q); });
+        if (badOg.length) { A.toast("오의가 닿지 않아요 (간격 " + ogRange(me.ougi.filter(function (z) { return z.i === badOg[0].i; })[0]) + ")"); return; }
         if (s.atk != null) {
           var a = me.attacks[s.atk], tg = P.b.f.filter(function (z) { return z.id === s.tg; })[0];
           if (!tg || P.b.targetsOf(me, a, tg).indexOf(tg) < 0) { A.toast("그 무공이 닿는 대상을 판에서 누르세요"); return; }
