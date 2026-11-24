@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl rheal nextlife ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl rheal nextlife sealed ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -177,8 +177,8 @@
   var EMO_NEG = ["불신", "분노", "질투", "모멸", "열등감", "살의"], EMO_POS = ["공감", "우정", "애정", "충성", "동경", "광신"];
   /* 독 무공: 독 표식을 거는 무공(내독체질) */
   function isPoison(a) { return !!a && (a.cl || []).some(function (c) { return c.effs.some(function (e) { return /^(mk|mkpop|mkdm)$/.test(e.key) && /^독/.test(String(e.arg || "")); }); }); }
-  function isMon(f) { return f.grade === "이물" || (f.c && (f.c.kind === "괴력난신" || f.c.group === "괴력난신")) || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka"; }); }
-  function isMg(f) { return f.grade === "이물" || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka"; }) || f.mgs.some(function (m) { return m.r.s === "마공"; }); }
+  function isMon(f) { return f.grade === "이물" || (f.c && (f.c.kind === "괴력난신" || f.c.group === "괴력난신")) || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka" || b.key === "sealed"; }); }
+  function isMg(f) { return f.grade === "이물" || !!f.yoka || f.buffs.some(function (b) { return b.key === "yoka" || b.key === "sealed"; }) || f.mgs.some(function (m) { return m.r.s === "마공"; }); }
 
   /* 판정치: 잃은 분야와 마비된 특기는 기준에서 뺀다 */
   function tnOf(f, sk) {
@@ -478,7 +478,7 @@
 
   /* ── 버프·상태이상 ── */
   var POS_KEYS = { powhi: 1, predall: 1, rage: 1, ha: 1, ea: 1, dm: 1, dr: 1, hd: 1, cl: 1, mv: 1, all: 1, r: 1, immovable: 1, immunest: 1, nostun: 1, sanct: 1, blur: 1, negc: 1, negall: 1, yoka: 1, fury: 1, both: 1, graze: 1, lostok: 1, twoatk: 1, nomvdebuff: 1, first: 1 };
-  var BUFF_KEYS = "markd markha markea advsk drOnce palsunplus ha ea ed hd dm dr r cl mv all cure fum cost exp vuln vulnr mark hdme immob mvcap noatk nosup noougi noequip noatkfld noatkme taunt sanct blur negc negall immunest immovable nostun lostok yoka fury both graze noevb nomvdebuff first endst nohide noheal powcap drunk twoatk curse keepmk rage nowater predall powhi".split(" ");
+  var BUFF_KEYS = "markd markha markea advsk drOnce palsunplus ha ea ed hd dm dr r cl mv all cure fum cost exp vuln vulnr mark hdme immob mvcap noatk nosup noougi noequip noatkfld noatkme taunt sanct blur negc negall immunest immovable nostun lostok yoka fury both graze noevb nomvdebuff first endst nohide noheal powcap drunk twoatk curse keepmk rage nowater predall powhi sealed".split(" ");
   var BUFFS = {}; BUFF_KEYS.forEach(function (k) { BUFFS[k] = 1; });
   var DEFER = { ha: 1, ea: 1, ed: 1, hd: 1, dm: 1, dr: 1, cl: 1, mv: 1, all: 1 }; /* 수치 버프의 @조건은 쓸 때 따진다 */
   B.addBuff = function (t, e, owner, dflt) {
@@ -1272,8 +1272,10 @@
     this.assistHit(f, a, t, queue);
     /* S 보조: 공격 성공 직후 */
     if (!f.ctrl || f.ctrl.autoS) this.supsFor(f, "S", t, a).filter(function (s) { return !self.hasEff([s.cl], "assist"); }).forEach(function (s) {
-      if (self.budget(f) < s.cost) return;
-      if (self.useSupport(f, s, "공격 성공 뒤")) queue.push(function () { s.cl.effs.forEach(function (e) { if (e.who && e.who !== "self" && e.who !== "foe") self.applyClause({ effs: [e] }, f, t, { atk: a, evade: false, dflt: 2 }); else self.applyEff(e, f, e.who === "self" ? f : t, { atk: a }, 2); }); });
+      var ag = self.hasEff([s.cl], "again");
+      if (ag && (depth >= 3 || !alive(t))) return;
+      if (self.budget(f) < s.cost + (ag ? a.cost || 0 : 0)) return;
+      if (self.useSupport(f, s, "공격 성공 뒤")) queue.push(function () { s.cl.effs.forEach(function (e) { if (e.key === "again") { if (depth < 3 && alive(t)) self._againQ = (self._againQ || []).concat([{ f: f, a: a, t: t, depth: depth + 1 }]); return; } if (e.who && e.who !== "self" && e.who !== "foe") self.applyClause({ effs: [e] }, f, t, { atk: a, evade: false, dflt: 2 }); else self.applyEff(e, f, e.who === "self" ? f : t, { atk: a }, 2); }); });
     });
   };
 
