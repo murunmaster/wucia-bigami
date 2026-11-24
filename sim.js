@@ -62,7 +62,7 @@
     "noatk nosup noougi noequip noatkfld noatkme taunt stun area as lvr uses postmv premv selfhurt pay evsk evbest evself evfld noevadv pierce aline centerdm sixv onlyzone adjbefore " +
     "redirect dodge reflect reflectadj absorb exp vuln vulnr mark hdme immob mvcap powcap powlt dispel splash splashall again passst traitor debt debtdm debtback curse burn noheal nohide hide unhide posthide keephide lurk seehidden " +
     "execute finish kill water zone immovable nostun endure nodeath lastround immune immunest thorns thornsd thornsmiss aura stunatk stunev lostok altsk setsk hdmulti forcereev bank nomvdebuff nopull ignoreg stpick twoatk " +
-    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl rheal nextlife sealed ").split(/\s+/);
+    "burst mk mkclr mkpop mkdm mkadj smkdm zmk zmkfoe seen hurttraitor starttraitor hurtmk smkhit starthide rage steal evmk startmk noburst predict predwide predall unyoka bloodpay bloodhit supmk allyhurtmk mvmk needmv zmkhurt zally palsun palsunplus endmk geori seenall smset powhi mkuse smkv keepmk nomk mkplus extra hit crit tfum evbeat evtwice blur negc negall sanct yoka fury both drunk rainbow first endst stackdm selfpowcap setterr onev chillup graze noevb asatk ahd cover takeover survive powmin powmax powmono dashr1 noatkr1 startst faura cev sev splashev markha markea takest stdm hits retreat copy noselfst dmcap only nolos onebonus multibonus pushmk unbind offeq offsup suck echo lostpen stealor swear powup powdown feign borrow borroweq laterst advsk evdm assist unarm seehid approachhit guardmv killpay dropzone purge reflect2 premv2 drOnce markd noeqdr quick iaido openpow lastpow peek bloodadv regen barefoot keepdo antidote nopose redecl rheal nextlife sealed missmk ").split(/\s+/);
   var IMPLS = {}; IMPL.forEach(function (k) { if (k) IMPLS[k] = 1; });
   function fxGaps(name) {
     var o = compile(name), miss = {};
@@ -1243,6 +1243,7 @@
     if (!hitFailed) {
       var gz = f.buffs.filter(function (b) { return b.key === "graze" && (!b.sub || self.cond(b.sub, f, t, a)); })[0];
       if (gz && a.type === "접근전") this.hurt(t, "접근전", 1, f);
+      f.passive.forEach(function (cl) { if (!self.clOk(f, cl, t, a)) return; cl.effs.forEach(function (e) { if (e.key === "missmk") { self.limUse(f, cl); self.applyEff({ key: "mk", arg: e.arg, v: 1 }, f, t, {}); } }); });
       a.cl.filter(function (cl) { return cl.trig === "F" && self.clOk(f, cl, t, a); }).forEach(function (cl) {
         self.limUse(f, cl);
         cl.effs.forEach(function (e) {
@@ -1634,7 +1635,7 @@
       var sc = function (s) { return (f.c && f.c.school === s) || f.mgs.some(function (m) { return m.r.s === s; }); };
       var dd = function (x) { return x.pos && f.pos ? cheb(x.pos, f.pos) : 0; };
       if (sc("종남파")) { var fr = self0.friends(f).filter(function (g) { return g !== f; }).sort(function (x, y) { return ((y.c && y.c.school === "종남파") ? 1 : 0) - ((x.c && x.c.school === "종남파") ? 1 : 0) || dd(x) - dd(y); }); f.pair = fr[0] || null; if (f.pair) self0.say(f.name + " — 짝: " + f.pair.name, "dim"); }
-      if (sc("의살문") || f.mgs.some(function (m) { return /^일명일전/.test(m.r.n); })) { var fo = self0.foes(f).sort(function (x, y) { return lvi(y) - lvi(x) || hpLeft(y) - hpLeft(x); }); f.decl = fo[0] || null; if (f.decl) self0.say(f.name + " — 예고한 표적: " + f.decl.name, "dim"); }
+      if (sc("의살문") || f.mgs.some(function (m) { return /^일명일전/.test(m.r.n); })) { var fo = self0.foes(f).sort(function (x, y) { return lvi(y) - lvi(x) || hpLeft(y) - hpLeft(x); }); f.decl = fo[0] || null; if (sc("의살문")) f.flags.redecl = true; if (f.decl) self0.say(f.name + " — 예고한 표적: " + f.decl.name, "dim"); }
       if (f.flags.startst && d6() === 1) self0.addStatus(f, String(f.flags.startst));
       if (f.flags.noatkr1) f.buffs.push({ key: "noatk", v: 1, left: 1 });
       if (f.flags.unarm && !f.attacks.some(function (a) { return !a.basic && A.fieldOf(bestSkill(f, a.sk)) === "병기"; })) { f.unarmed = true; self0.say(f.name + " — 병기를 내려놓는다", "dim"); }
